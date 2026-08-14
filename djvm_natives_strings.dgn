@@ -1,0 +1,333 @@
+// DJVM: String and StringBuilder natives
+func registerStringNatives(jvm) {
+        jvm.registerNative("java/lang/String", "length", "()I", func(args, thread, jvm) {
+            str = args[0]["__fields__"].get("value"); return len(str);
+        });
+        jvm.registerNative("java/lang/String", "charAt", "(I)C", func(args, thread, jvm) {
+            str = args[0]["__fields__"].get("value"); idx = args[1]; return str[idx];
+        });
+        jvm.registerNative("java/lang/String", "equals", "(Ljava/lang/Object;)Z", func(args, thread, jvm) {
+            if (args[1] == null or args[1]["__class__"] != "java/lang/String") { return 0; }
+            return (args[0]["__fields__"].get("value") == args[1]["__fields__"].get("value")) ? 1 : 0;
+        });
+
+        jvm.registerNative("java/lang/StringBuilder", "<init>", "()V", func(args, thread, jvm) {
+            fields = args[0]["__fields__"]; fields.set("value", ""); return null;
+        });
+        jvm.registerNative("java/lang/StringBuilder", "<init>", "(Ljava/lang/String;)V", func(args, thread, jvm) {
+            s = args[1] != null ? args[1]["__fields__"].get("value") : "";
+            fields = args[0]["__fields__"]; fields.set("value", s); return null;
+        });
+        jvm.registerNative("java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", func(args, thread, jvm) {
+            cur = args[0]["__fields__"].get("value");
+            add = args[1] != null ? args[1]["__fields__"].get("value") : "null";
+            fields = args[0]["__fields__"]; fields.set("value", cur + add); return args[0];
+        });
+        jvm.registerNative("java/lang/StringBuilder", "append", "(I)Ljava/lang/StringBuilder;", func(args, thread, jvm) {
+            cur = args[0]["__fields__"].get("value");
+            fields = args[0]["__fields__"]; fields.set("value", cur + str(int(args[1]))); return args[0];
+        });
+        jvm.registerNative("java/lang/StringBuilder", "append", "(J)Ljava/lang/StringBuilder;", func(args, thread, jvm) {
+            cur = args[0]["__fields__"].get("value");
+            fields = args[0]["__fields__"]; fields.set("value", cur + str(int(args[1]))); return args[0];
+        });
+        jvm.registerNative("java/lang/StringBuilder", "append", "(F)Ljava/lang/StringBuilder;", func(args, thread, jvm) {
+            cur = args[0]["__fields__"].get("value");
+            fields = args[0]["__fields__"]; fields.set("value", cur + str(args[1])); return args[0];
+        });
+        jvm.registerNative("java/lang/StringBuilder", "append", "(D)Ljava/lang/StringBuilder;", func(args, thread, jvm) {
+            cur = args[0]["__fields__"].get("value");
+            fields = args[0]["__fields__"]; fields.set("value", cur + str(args[1])); return args[0];
+        });
+        jvm.registerNative("java/lang/StringBuilder", "append", "(Z)Ljava/lang/StringBuilder;", func(args, thread, jvm) {
+            cur = args[0]["__fields__"].get("value");
+            add = args[1] != 0 ? "true" : "false";
+            fields = args[0]["__fields__"]; fields.set("value", cur + add); return args[0];
+        });
+        jvm.registerNative("java/lang/StringBuilder", "append", "(C)Ljava/lang/StringBuilder;", func(args, thread, jvm) {
+            cur = args[0]["__fields__"].get("value");
+            fields = args[0]["__fields__"]; fields.set("value", cur + chr(int(args[1]))); return args[0];
+        });
+       jvm.registerNative("java/lang/StringBuilder", "append", "(Ljava/lang/Object;)Ljava/lang/StringBuilder;", func(args, thread, jvm) {
+            cur = args[0]["__fields__"].get("value");
+            obj = args[1];
+            add = obj == null ? "null" : (obj.contains("__fields__") and obj["__fields__"].get("value") != null ? obj["__fields__"].get("value") : str(obj));
+            fields = args[0]["__fields__"]; fields.set("value", cur + add); return args[0];
+        });
+        jvm.registerNative("java/lang/StringBuilder", "toString", "()Ljava/lang/String;", func(args, thread, jvm) {
+            return newJavaString(args[0]["__fields__"].get("value"), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/StringBuilder", "length", "()I", func(args, thread, jvm) {
+            return len(args[0]["__fields__"].get("value"));
+        });
+        jvm.registerNative("java/lang/StringBuilder", "insert", "(ILjava/lang/String;)Ljava/lang/StringBuilder;", func(args, thread, jvm) {
+            cur = args[0]["__fields__"].get("value"); pos = int(args[1]);
+            ins = args[2] != null ? args[2]["__fields__"].get("value") : "null";
+            fields = args[0]["__fields__"]; fields.set("value", cur.substring(0, pos) + ins + cur.substring(pos, len(cur))); return args[0];
+        });
+        jvm.registerNative("java/lang/StringBuilder", "delete", "(II)Ljava/lang/StringBuilder;", func(args, thread, jvm) {
+            cur = args[0]["__fields__"].get("value"); s = int(args[1]); e = int(args[2]);
+            fields = args[0]["__fields__"]; fields.set("value", cur.substring(0, s) + cur.substring(e, len(cur))); return args[0];
+        });
+        jvm.registerNative("java/lang/StringBuilder", "reverse", "()Ljava/lang/StringBuilder;", func(args, thread, jvm) {
+            cur = args[0]["__fields__"].get("value");
+            rev = ""; i = len(cur) - 1; while (i >= 0) { rev = rev + cur[i]; i--; }
+            fields = args[0]["__fields__"]; fields.set("value", rev); return args[0];
+        });
+
+        jvm.registerNative("java/lang/String", "toString", "()Ljava/lang/String;", func(args, thread, jvm) { return args[0]; });
+        jvm.registerNative("java/lang/String", "valueOf", "(I)Ljava/lang/String;", func(args, thread, jvm) {
+            return newJavaString(str(int(args[0])), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/String", "valueOf", "(J)Ljava/lang/String;", func(args, thread, jvm) {
+            return newJavaString(str(int(args[0])), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/String", "valueOf", "(F)Ljava/lang/String;", func(args, thread, jvm) {
+            return newJavaString(str(args[0]), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/String", "valueOf", "(D)Ljava/lang/String;", func(args, thread, jvm) {
+            return newJavaString(str(args[0]), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/String", "valueOf", "(Z)Ljava/lang/String;", func(args, thread, jvm) {
+            return newJavaString(args[0] != 0 ? "true" : "false", jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/String", "valueOf", "(C)Ljava/lang/String;", func(args, thread, jvm) {
+            return newJavaString(chr(int(args[0])), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/String", "valueOf", "(Ljava/lang/Object;)Ljava/lang/String;", func(args, thread, jvm) {
+            obj = args[0];
+            if (obj == null) { return newJavaString("null", jvm.classMgr); }
+            if (obj.contains("__fields__") and obj["__fields__"].get("value") != null) { return newJavaString(obj["__fields__"].get("value"), jvm.classMgr); }
+            return newJavaString(str(obj), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/String", "concat", "(Ljava/lang/String;)Ljava/lang/String;", func(args, thread, jvm) {
+            a = args[0]["__fields__"].get("value"); b = args[1]["__fields__"].get("value");
+            return newJavaString(a + b, jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/String", "substring", "(I)Ljava/lang/String;", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); start = int(args[1]);
+            return newJavaString(s.substring(start, len(s)), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/String", "substring", "(II)Ljava/lang/String;", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); start = int(args[1]); end = int(args[2]);
+            return newJavaString(s.substring(start, end), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/String", "indexOf", "(Ljava/lang/String;)I", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); sub = args[1]["__fields__"].get("value");
+            return s.index_of(sub);
+        });
+        jvm.registerNative("java/lang/String", "contains", "(Ljava/lang/CharSequence;)Z", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); sub = args[1]["__fields__"].get("value");
+            return s.contains(sub) ? 1 : 0;
+        });
+        jvm.registerNative("java/lang/String", "startsWith", "(Ljava/lang/String;)Z", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); pre = args[1]["__fields__"].get("value");
+            return s.starts_with(pre) ? 1 : 0;
+        });
+        jvm.registerNative("java/lang/String", "endsWith", "(Ljava/lang/String;)Z", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); suf = args[1]["__fields__"].get("value");
+            return s.ends_with(suf) ? 1 : 0;
+        });
+        jvm.registerNative("java/lang/String", "toUpperCase", "()Ljava/lang/String;", func(args, thread, jvm) {
+            return newJavaString(args[0]["__fields__"].get("value").upper(), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/String", "toLowerCase", "()Ljava/lang/String;", func(args, thread, jvm) {
+            return newJavaString(args[0]["__fields__"].get("value").lower(), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/String", "trim", "()Ljava/lang/String;", func(args, thread, jvm) {
+            return newJavaString(args[0]["__fields__"].get("value").trim(), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/String", "replace", "(CC)Ljava/lang/String;", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value");
+            from = chr(int(args[1])); to = chr(int(args[2]));
+            return newJavaString(s.replace(from, to), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/String", "replace", "(Ljava/lang/CharSequence;Ljava/lang/CharSequence;)Ljava/lang/String;", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value");
+            from = args[1]["__fields__"].get("value"); to = args[2]["__fields__"].get("value");
+            return newJavaString(s.replace(from, to), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/String", "isEmpty", "()Z", func(args, thread, jvm) {
+            return len(args[0]["__fields__"].get("value")) == 0 ? 1 : 0;
+        });
+        jvm.registerNative("java/lang/String", "toCharArray", "()[C", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value");
+            arrObj = hashmap(); arrObj.set("__type__", "array"); arrObj.set("__class__", "[C"); arrObj.set("__id__", allocateHeap(arrObj));
+            arr = list(); i = 0; while (i < len(s)) { arr.push(s[i]); i++; }
+            arrObj.set("__array__", arr); return arrObj;
+        });
+
+        jvm.registerNative("java/lang/String", "equalsIgnoreCase", "(Ljava/lang/String;)Z", func(args, thread, jvm) {
+            if (args[1] == null) { return 0; }
+            return args[0]["__fields__"].get("value").lower() == args[1]["__fields__"].get("value").lower() ? 1 : 0;
+        });
+        jvm.registerNative("java/lang/String", "compareTo", "(Ljava/lang/String;)I", func(args, thread, jvm) {
+            a = args[0]["__fields__"].get("value"); b = args[1]["__fields__"].get("value");
+            return a < b ? -1 : (a > b ? 1 : 0);
+        });
+        jvm.registerNative("java/lang/String", "compareToIgnoreCase", "(Ljava/lang/String;)I", func(args, thread, jvm) {
+            a = args[0]["__fields__"].get("value").lower(); b = args[1]["__fields__"].get("value").lower();
+            return a < b ? -1 : (a > b ? 1 : 0);
+        });
+        jvm.registerNative("java/lang/String", "indexOf", "(I)I", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); c = chr(int(args[1]));
+            i = 0; while (i < len(s)) { if (s[i] == c) { return i; } i++; } return -1;
+        });
+        jvm.registerNative("java/lang/String", "indexOf", "(Ljava/lang/String;I)I", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); sub = args[1]["__fields__"].get("value"); from = int(args[2]);
+            sub2 = s.substring(from, len(s)); idx = sub2.index_of(sub);
+            return idx < 0 ? -1 : idx + from;
+        });
+        jvm.registerNative("java/lang/String", "lastIndexOf", "(Ljava/lang/String;)I", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); sub = args[1]["__fields__"].get("value");
+            last = -1; i = 0;
+            while (i <= len(s) - len(sub)) {
+                if (s.substring(i, i + len(sub)) == sub) { last = i; }
+                i++;
+            }
+            return last;
+        });
+        jvm.registerNative("java/lang/String", "lastIndexOf", "(I)I", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); c = chr(int(args[1]));
+            i = len(s) - 1; while (i >= 0) { if (s[i] == c) { return i; } i--; } return -1;
+        });
+        jvm.registerNative("java/lang/String", "split", "(Ljava/lang/String;)Ljava/lang/[Ljava/lang/String;;", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); delim = args[1]["__fields__"].get("value");
+            parts = list(); cur = ""; i = 0;
+            while (i < len(s)) {
+                if (i + len(delim) <= len(s) and s.substring(i, i + len(delim)) == delim) {
+                    parts.push(cur); cur = ""; i = i + len(delim);
+                } else { cur = cur + s[i]; i++; }
+            }
+            parts.push(cur);
+            arrObj = hashmap(); arrObj.set("__type__", "array"); arrObj.set("__class__", "[Ljava/lang/String;"); arrObj.set("__id__", allocateHeap(arrObj));
+            arr = list(); pi = 0; while (pi < len(parts)) { arr.push(newJavaString(parts[pi], jvm.classMgr)); pi++; }
+            arrObj.set("__array__", arr); return arrObj;
+        });
+        jvm.registerNative("java/lang/String", "split", "(Ljava/lang/String;I)Ljava/lang/[Ljava/lang/String;;", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); delim = args[1]["__fields__"].get("value"); limit = int(args[2]);
+            parts = list(); cur = ""; i = 0;
+            while (i < len(s)) {
+                if ((limit <= 0 or len(parts) < limit - 1) and i + len(delim) <= len(s) and s.substring(i, i + len(delim)) == delim) {
+                    parts.push(cur); cur = ""; i = i + len(delim);
+                } else { cur = cur + s[i]; i++; }
+            }
+            parts.push(cur);
+            arrObj = hashmap(); arrObj.set("__type__", "array"); arrObj.set("__class__", "[Ljava/lang/String;"); arrObj.set("__id__", allocateHeap(arrObj));
+            arr = list(); pi = 0; while (pi < len(parts)) { arr.push(newJavaString(parts[pi], jvm.classMgr)); pi++; }
+            arrObj.set("__array__", arr); return arrObj;
+        });
+        jvm.registerNative("java/lang/String", "matches", "(Ljava/lang/String;)Z", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); pat = args[1]["__fields__"].get("value");
+            return s == pat ? 1 : 0;
+        });
+        jvm.registerNative("java/lang/String", "format", "(Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/String;", func(args, thread, jvm) {
+            fmt = args[0]["__fields__"].get("value"); fmtArgs = args[1];
+            fmtArr = fmtArgs != null ? fmtArgs["__array__"] : list();
+            return newJavaString(jvmFormat(fmt, fmtArr), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/String", "intern", "()Ljava/lang/String;", func(args, thread, jvm) { return args[0]; });
+        jvm.registerNative("java/lang/String", "hashCode", "()I", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); h = 0; i = 0;
+            while (i < len(s)) { h = (h * 31 + int(s[i])) & 2147483647; i++; }
+            return h;
+        });
+        jvm.registerNative("java/io/PrintStream", "format", "(Ljava/lang/String;[Ljava/lang/Object;)Ljava/io/PrintStream;", func(args, thread, jvm) {
+            fmt = args[1]["__fields__"].get("value"); fmtArgs = args[2];
+            fmtArr = fmtArgs != null ? fmtArgs["__array__"] : list();
+            show(jvmFormat(fmt, fmtArr)); return args[0];
+        });
+        jvm.registerNative("java/io/PrintStream", "printf", "(Ljava/lang/String;[Ljava/lang/Object;)Ljava/io/PrintStream;", func(args, thread, jvm) {
+            fmt = args[1]["__fields__"].get("value"); fmtArgs = args[2];
+            fmtArr = fmtArgs != null ? fmtArgs["__array__"] : list();
+            show(jvmFormat(fmt, fmtArr)); return args[0];
+        });
+
+        jvm.registerNative("java/lang/StringBuilder", "charAt", "(I)C", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); return s[int(args[1])];
+        });
+        jvm.registerNative("java/lang/StringBuilder", "substring", "(I)Ljava/lang/String;", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); start = int(args[1]);
+            return newJavaString(s.substring(start, len(s)), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/StringBuilder", "substring", "(II)Ljava/lang/String;", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); start = int(args[1]); end = int(args[2]);
+            return newJavaString(s.substring(start, end), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/StringBuilder", "indexOf", "(Ljava/lang/String;)I", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); sub = args[1]["__fields__"].get("value"); return s.index_of(sub);
+        });
+        jvm.registerNative("java/lang/StringBuilder", "replace", "(IILjava/lang/String;)Ljava/lang/StringBuilder;", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); start = int(args[1]); end = int(args[2]);
+            rep = args[3] != null ? args[3]["__fields__"].get("value") : "";
+            args[0]["__fields__"].set("value", s.substring(0, start) + rep + s.substring(end, len(s))); return args[0];
+        });
+        jvm.registerNative("java/lang/StringBuilder", "deleteCharAt", "(I)Ljava/lang/StringBuilder;", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); idx = int(args[1]);
+            args[0]["__fields__"].set("value", s.substring(0, idx) + s.substring(idx+1, len(s))); return args[0];
+        });
+        jvm.registerNative("java/lang/StringBuilder", "setCharAt", "(IC)V", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); idx = int(args[1]);
+            args[0]["__fields__"].set("value", s.substring(0, idx) + chr(int(args[2])) + s.substring(idx+1, len(s))); return null;
+        });
+
+        jvm.registerNative("java/lang/StringBuilder", "capacity", "()I", func(args, thread, jvm) { return 16; });
+        jvm.registerNative("java/lang/StringBuilder", "ensureCapacity", "(I)V", func(args, thread, jvm) { return null; });
+        jvm.registerNative("java/lang/StringBuilder", "trimToSize", "()V", func(args, thread, jvm) { return null; });
+
+        jvm.registerNative("java/lang/String", "chars", "()Ljava/util/stream/IntStream;", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value");
+            arr = list(); for (i=0; i<len(s); i++) { arr.push(int(s[i])); }
+            stObj = newJavaObject(jvm.classMgr.loadClass("java/util/stream/IntStream"));
+            stObj["__fields__"].set("__data__", arr); return stObj;
+        });
+        jvm.registerNative("java/lang/String", "codePointAt", "(I)I", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); return int(s[args[1]]);
+        });
+        jvm.registerNative("java/lang/String", "getBytes", "()[B", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value");
+            arrObj = hashmap(); arrObj.set("__type__", "array"); arrObj.set("__class__", "[B");
+            arr = list(); for (i=0; i<len(s); i++) { arr.push(int(s[i])); }
+            arrObj.set("__array__", arr); arrObj.set("__id__", allocateHeap(arrObj)); return arrObj;
+        });
+        jvm.registerNative("java/lang/String", "toCharArray", "()[C", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value");
+            arrObj = hashmap(); arrObj.set("__type__", "array"); arrObj.set("__class__", "[C");
+            arr = list(); for (i=0; i<len(s); i++) { arr.push(int(s[i])); }
+            arrObj.set("__array__", arr); arrObj.set("__id__", allocateHeap(arrObj)); return arrObj;
+        });
+        jvm.registerNative("java/lang/String", "join", "(Ljava/lang/CharSequence;[Ljava/lang/CharSequence;)Ljava/lang/String;", func(args, thread, jvm) {
+            sep = args[0]["__fields__"].get("value"); parts = args[1]["__array__"];
+            res = "";
+            for (i=0; i<len(parts); i++) {
+                if (i > 0) { res = res + sep; }
+                res = res + (parts[i] == null ? "null" : parts[i]["__fields__"].get("value"));
+            }
+            return newJavaString(res, jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/String", "repeat", "(I)Ljava/lang/String;", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); n = args[1]; res = "";
+            for (i=0; i<n; i++) { res = res + s; }
+            return newJavaString(res, jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/String", "strip", "()Ljava/lang/String;", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value");
+            return newJavaString(s.trim(), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/String", "stripLeading", "()Ljava/lang/String;", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); i = 0;
+            while (i < len(s) and (s[i] == " " or s[i] == "\t" or s[i] == "\n" or s[i] == "\r")) { i++; }
+            return newJavaString(s.substring(i, len(s)), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/String", "stripTrailing", "()Ljava/lang/String;", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); i = len(s) - 1;
+            while (i >= 0 and (s[i] == " " or s[i] == "\t" or s[i] == "\n" or s[i] == "\r")) { i--; }
+            return newJavaString(s.substring(0, i+1), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/String", "isBlank", "()Z", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value");
+            for (i=0; i<len(s); i++) { if (s[i] != " " and s[i] != "\t" and s[i] != "\n" and s[i] != "\r") { return 0; } }
+            return 1;
+        });
+
+}

@@ -1,0 +1,86 @@
+// DJVM: java.io.PrintStream and java.util.Scanner natives
+func registerIoNatives(jvm) {
+        jvm.registerNative("java/io/PrintStream", "println", "(Ljava/lang/String;)V", func(args, thread, jvm) {
+            strObj = args[1]; showln(str(strObj["__fields__"].get("value"))); return null;
+        });
+        jvm.registerNative("java/io/PrintStream", "println", "(I)V", func(args, thread, jvm) { showln(str(args[1])); return null; });
+        jvm.registerNative("java/lang/Object", "hashCode", "()I", func(args, thread, jvm) { return args[0]["__id__"]; });
+
+        jvm.registerNative("java/io/PrintStream", "println", "(J)V", func(args, thread, jvm) { showln(str(int(args[1]))); return null; });
+        jvm.registerNative("java/io/PrintStream", "println", "(D)V", func(args, thread, jvm) { showln(str(args[1])); return null; });
+        jvm.registerNative("java/io/PrintStream", "println", "(F)V", func(args, thread, jvm) { showln(str(args[1])); return null; });
+        jvm.registerNative("java/io/PrintStream", "println", "(Z)V", func(args, thread, jvm) { showln(args[1] != 0 ? "true" : "false"); return null; });
+        jvm.registerNative("java/io/PrintStream", "println", "(C)V", func(args, thread, jvm) { showln(chr(int(args[1]))); return null; });
+        jvm.registerNative("java/io/PrintStream", "println", "(Ljava/lang/Object;)V", func(args, thread, jvm) {
+            obj = args[1];
+            if (obj == null) { showln("null"); }
+            else if (obj.contains("__fields__") and obj["__fields__"].get("value") != null) { showln(str(obj["__fields__"].get("value"))); }
+            else { showln(str(obj)); }
+            return null;
+        });
+        jvm.registerNative("java/io/PrintStream", "println", "()V", func(args, thread, jvm) { showln(""); return null; });
+        jvm.registerNative("java/io/PrintStream", "print", "(Ljava/lang/String;)V", func(args, thread, jvm) {
+            strObj = args[1]; show(str(strObj["__fields__"].get("value"))); return null;
+        });
+        jvm.registerNative("java/io/PrintStream", "print", "(I)V", func(args, thread, jvm) { show(str(int(args[1]))); return null; });
+        jvm.registerNative("java/io/PrintStream", "print", "(J)V", func(args, thread, jvm) { show(str(int(args[1]))); return null; });
+        jvm.registerNative("java/io/PrintStream", "print", "(D)V", func(args, thread, jvm) { show(str(args[1])); return null; });
+        jvm.registerNative("java/io/PrintStream", "print", "(Z)V", func(args, thread, jvm) { show(args[1] != 0 ? "true" : "false"); return null; });
+        jvm.registerNative("java/io/PrintStream", "print", "(C)V", func(args, thread, jvm) { show(chr(int(args[1]))); return null; });
+        jvm.registerNative("java/io/PrintStream", "print", "(Ljava/lang/Object;)V", func(args, thread, jvm) {
+            obj = args[1];
+            if (obj == null) { show("null"); }
+            else if (obj.contains("__fields__") and obj["__fields__"].get("value") != null) { show(str(obj["__fields__"].get("value"))); }
+            else { show(str(obj)); }
+            return null;
+        });
+
+        jvm.registerNative("java/util/Scanner", "<init>", "(Ljava/io/InputStream;)V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("__buf__", list()); return null;
+        });
+        jvm.registerNative("java/util/Scanner", "nextLine", "()Ljava/lang/String;", func(args, thread, jvm) {
+            line = readln(""); return newJavaString(line, jvm.classMgr);
+        });
+        jvm.registerNative("java/util/Scanner", "next", "()Ljava/lang/String;", func(args, thread, jvm) {
+            line = readln(""); return newJavaString(line.trim(), jvm.classMgr);
+        });
+        jvm.registerNative("java/util/Scanner", "nextInt", "()I", func(args, thread, jvm) {
+            line = readln(""); return int(line.trim());
+        });
+        jvm.registerNative("java/util/Scanner", "nextLong", "()J", func(args, thread, jvm) {
+            line = readln(""); return int(line.trim());
+        });
+        jvm.registerNative("java/util/Scanner", "nextDouble", "()D", func(args, thread, jvm) {
+            line = readln(""); return float(line.trim());
+        });
+        jvm.registerNative("java/util/Scanner", "hasNext", "()Z", func(args, thread, jvm) { return 1; });
+        jvm.registerNative("java/util/Scanner", "hasNextLine", "()Z", func(args, thread, jvm) { return 1; });
+        jvm.registerNative("java/util/Scanner", "close", "()V", func(args, thread, jvm) { return null; });
+
+        jvm.registerNative("java/lang/System", "in_read", "()I", func(args, thread, jvm) { return -1; });
+
+        jvm.registerNative("java/lang/System", "in_read", "()I", func(args, thread, jvm) { return -1; });
+
+        jvm.registerNative("java/io/PrintStream", "print", "(D)V", func(args, thread, jvm) { show(str(args[1])); return null; });
+        jvm.registerNative("java/io/PrintStream", "print", "(F)V", func(args, thread, jvm) { show(str(args[1])); return null; });
+        jvm.registerNative("java/io/PrintStream", "print", "(Z)V", func(args, thread, jvm) { show(args[1] != 0 ? "true" : "false"); return null; });
+        jvm.registerNative("java/io/PrintStream", "print", "(C)V", func(args, thread, jvm) { show(chr(int(args[1]))); return null; });
+        jvm.registerNative("java/io/PrintStream", "print", "(Ljava/lang/Object;)V", func(args, thread, jvm) {
+            if (args[1] == null) { show("null"); }
+            else if (args[1].contains("__fields__") and args[1]["__fields__"].get("value") != null) { show(str(args[1]["__fields__"].get("value"))); }
+            else { show(args[1]["__class__"] + "@" + str(args[1]["__id__"])); }
+            return null;
+        });
+        jvm.registerNative("java/io/PrintStream", "println", "([C)V", func(args, thread, jvm) {
+            arr = args[1]["__array__"]; s = "";
+            for (i=0; i<len(arr); i++) { s = s + chr(int(arr[i])); }
+            showln(s); return null;
+        });
+        jvm.registerNative("java/io/PrintStream", "flush", "()V", func(args, thread, jvm) { return null; });
+        jvm.registerNative("java/io/PrintStream", "close", "()V", func(args, thread, jvm) { return null; });
+
+        jvm.registerNative("java/util/Scanner", "hasNextInt", "()Z", func(args, thread, jvm) { return 1; });
+        jvm.registerNative("java/util/Scanner", "hasNextDouble", "()Z", func(args, thread, jvm) { return 1; });
+        jvm.registerNative("java/util/Scanner", "useDelimiter", "(Ljava/lang/String;)Ljava/util/Scanner;", func(args, thread, jvm) { return args[0]; });
+
+}

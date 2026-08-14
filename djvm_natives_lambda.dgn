@@ -1,0 +1,19 @@
+// DJVM: Functional-interface (lambda) dispatch natives
+func registerLambdaNatives(jvm) {
+        jvm.registerNative("java/util/function/BiConsumer", "accept", "(Ljava/lang/Object;Ljava/lang/Object;)V", func(args, thread, jvm) { return null; });
+        jvm.registerNative("java/util/function/Consumer", "accept", "(Ljava/lang/Object;)V", func(args, thread, jvm) { return null; });
+        jvm.registerNative("java/util/function/Supplier", "get", "()Ljava/lang/Object;", func(args, thread, jvm) { return null; });
+        jvm.registerNative("java/util/function/Function", "apply", "(Ljava/lang/Object;)Ljava/lang/Object;", func(args, thread, jvm) { return args[1]; });
+        jvm.registerNative("java/util/function/Predicate", "test", "(Ljava/lang/Object;)Z", func(args, thread, jvm) { return 0; });
+        jvm.registerNative("java/util/Comparator", "compare", "(Ljava/lang/Object;Ljava/lang/Object;)I", func(args, thread, jvm) {
+            return jvmKeyStr(args[1]) > jvmKeyStr(args[2]) ? 1 : (jvmKeyStr(args[1]) < jvmKeyStr(args[2]) ? -1 : 0);
+        });
+        jvm.registerNative("java/util/Comparator", "naturalOrder", "()Ljava/util/Comparator;", func(args, thread, jvm) {
+            cmpObj = newJavaObject(jvm.classMgr.loadClass("java/util/Comparator"));
+            cmpObj["__fields__"].set("__type__", "natural"); return cmpObj;
+        });
+        jvm.registerNative("java/util/Comparator", "reverseOrder", "()Ljava/util/Comparator;", func(args, thread, jvm) {
+            cmpObj = newJavaObject(jvm.classMgr.loadClass("java/util/Comparator"));
+            cmpObj["__fields__"].set("__type__", "reverse"); return cmpObj;
+        });
+}

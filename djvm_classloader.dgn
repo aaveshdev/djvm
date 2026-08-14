@@ -1,0 +1,107 @@
+// DJVM: class loader - loads, caches and links classes (bootstrap stubs + application classes)
+class ClassManager {
+    classPath = "."; cache = hashmap();
+    func init(cp) { this.classPath = cp; }
+
+    func loadClass(className) {
+        if (className == null) { return null; }
+        
+        if (className == "java/lang/Object") { return null; }
+        if (this.cache.contains(className)) { return this.cache.get(className); }
+
+        if (className.starts_with("java/") or className.starts_with("javax/")) {
+            stub = hashmap();
+            stub.set("name", className); stub.set("super_class", "java/lang/Object");
+            stub.set("methods", hashmap()); stub.set("static_fields", hashmap());
+            stub.set("fields", list());
+            stub.set("state", 3); // Ready
+
+            if (className == "java/lang/System") {
+                mockOut = hashmap(); mockOut.set("__type__", "object");
+                mockOut.set("__class__", "java/io/PrintStream"); mockOut.set("__fields__", hashmap());
+                mockOut.set("__id__", allocateHeap(mockOut)); mockOut.set("__monitor_owner__", -1); mockOut.set("__monitor_count__", 0); mockOut.set("__wait_set__", list());
+                stub["static_fields"].set("out", mockOut);
+                mockErr = hashmap(); mockErr.set("__type__", "object");
+                mockErr.set("__class__", "java/io/PrintStream"); mockErr.set("__fields__", hashmap());
+                mockErr.set("__id__", allocateHeap(mockErr)); mockErr.set("__monitor_owner__", -1); mockErr.set("__monitor_count__", 0); mockErr.set("__wait_set__", list());
+                stub["static_fields"].set("err", mockErr);
+            }
+            if (className == "java/lang/Math") {
+                stub["static_fields"].set("PI", 3.141592653589793);
+                stub["static_fields"].set("E",  2.718281828459045);
+            }
+            if (className == "java/lang/Integer") {
+                stub["static_fields"].set("MAX_VALUE", 2147483647);
+                stub["static_fields"].set("MIN_VALUE", -2147483648);
+            }
+            if (className == "java/lang/Long") {
+                stub["static_fields"].set("MAX_VALUE", 9223372036854775807);
+                stub["static_fields"].set("MIN_VALUE", -9223372036854775808);
+            }
+            if (className == "java/lang/Float") {
+                stub["static_fields"].set("MAX_VALUE", 3.4028235e38);
+                stub["static_fields"].set("MIN_VALUE", 1.4e-45);
+                stub["static_fields"].set("NaN", 0.0);
+                stub["static_fields"].set("POSITIVE_INFINITY", 1e300);
+                stub["static_fields"].set("NEGATIVE_INFINITY", -1e300);
+            }
+            if (className == "java/lang/Double") {
+                stub["static_fields"].set("MAX_VALUE", 1.7976931348623157e308);
+                stub["static_fields"].set("MIN_VALUE", 5e-324);
+                stub["static_fields"].set("NaN", 0.0);
+                stub["static_fields"].set("POSITIVE_INFINITY", 1e300);
+                stub["static_fields"].set("NEGATIVE_INFINITY", -1e300);
+            }
+            if (className == "java/lang/Boolean") {
+                stub["static_fields"].set("TRUE", 1);
+                stub["static_fields"].set("FALSE", 0);
+            }
+            if (className == "java/lang/Character") {
+                stub["static_fields"].set("MAX_VALUE", 65535);
+                stub["static_fields"].set("MIN_VALUE", 0);
+            }
+            if (className == "java/lang/Byte") {
+                stub["static_fields"].set("MAX_VALUE", 127);
+                stub["static_fields"].set("MIN_VALUE", -128);
+            }
+            if (className == "java/lang/Short") {
+                stub["static_fields"].set("MAX_VALUE", 32767);
+                stub["static_fields"].set("MIN_VALUE", -32768);
+            }
+            this.cache.set(className, stub); return stub;
+        }
+
+        filePath = this.classPath + "/" + className + ".class";
+        rawBytes = file.read_bytes(filePath);
+        if (rawBytes == null) { raise "ClassNotFoundException: " + className; }
+
+        loader = new ClassLoaderParser(rawBytes); cls = loader.parse();
+        this.cache.set(className, cls);
+
+        if (cls["super_class"] != null and cls["super_class"] != "java/lang/Object") {
+            this.loadClass(cls["super_class"]);
+        }
+        cls.set("state", 1); // Linked
+        return cls;
+    }
+
+    func isSubclass(childName, targetName) {
+        if (childName == targetName) { return True; }
+        if (targetName == "java/lang/Object") { return True; }
+        cls = this.loadClass(childName);
+        while (cls != null) {
+            if (cls["super_class"] == targetName) { return True; }
+            if (cls.contains("interfaces")) {
+                ifaces = cls["interfaces"];
+                for (ii=0; ii<len(ifaces); ii++) {
+                    if (ifaces[ii] == targetName) { return True; }
+                    if (this.isSubclass(ifaces[ii], targetName)) { return True; }
+                }
+            }
+            if (cls["super_class"] == null) { break; }
+            cls = this.loadClass(cls["super_class"]);
+        }
+        return False;
+    }
+}
+

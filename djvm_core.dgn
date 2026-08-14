@@ -1,0 +1,239 @@
+// DJVM: DragonJVM core - construction, native registration dispatch, method invocation, exception unwinding
+class DragonJVM {
+    classMgr = null; natives = hashmap();
+    threads = list(); thread_counter = 1; tick_clock = 1000;
+
+    func init(classManager) { this.classMgr = classManager; this.registerStandardNatives(); }
+
+    func registerNative(className, name, desc, callback) { this.natives.set(className + "::" + name + ":" + desc, callback); }
+
+    func registerStandardNatives() {
+        registerStringNatives(this);
+        registerLangCoreNatives(this);
+        registerIoNatives(this);
+        registerNumberNatives(this);
+        registerMathNatives(this);
+        registerListNatives(this);
+        registerMapNatives(this);
+        registerExceptionNatives(this);
+        registerLambdaNatives(this);
+    }
+
+    func initClassIfNeeded(cls, thread) {
+        if (cls == null) { return False; }
+        if (cls["state"] >= 2) { return False; } 
+        cls.set("state", 2); 
+        clinit = cls["methods"].get("<clinit>:()V");
+        if (clinit != null) {
+            newFrame = new Frame(clinit, cls); thread.callStack.push(newFrame); return True;
+        }
+        cls.set("state", 3); 
+        return False;
+    }
+
+    func invokeStatic(className, methodName, methodDesc, thread) {
+        if (className == null) { raise "NoClassDefFoundError"; }
+        cls = this.classMgr.loadClass(className);
+        if (cls == null) {
+            if (methodName == "<init>") { thread.opStack.pop(); return False; }
+            raise "NoClassDefFoundError: " + className;
+        }
+        if (this.initClassIfNeeded(cls, thread)) { return True; }
+
+        target = cls["methods"].get(methodName + ":" + methodDesc);
+        if (target == null) {
+            nativeKeyFallback = null; searchClassFB = className;
+            while (searchClassFB != null) {
+                candidateKeyFB = searchClassFB + "::" + methodName + ":" + methodDesc;
+                if (this.natives.contains(candidateKeyFB)) { nativeKeyFallback = candidateKeyFB; break; }
+                searchClsFB = this.classMgr.loadClass(searchClassFB);
+                searchClassFB = searchClsFB != null ? searchClsFB["super_class"] : null;
+            }
+            if (nativeKeyFallback == null) { raise "NoSuchMethodError: " + className + "." + methodName; }
+            callbackFB = this.natives.get(nativeKeyFallback);
+            argCountFB = getArgCount(methodDesc); argsFB = list();
+            for(i=0; i<argCountFB; i++) { argsFB.push(thread.opStack.pop()); }
+            if (methodName == "<init>") { objRefFB = thread.opStack.pop(); argsFB.push(objRefFB); }
+            finalArgsFB = list();
+            if (methodName == "<init>") {
+                finalArgsFB.push(argsFB[len(argsFB)-1]);
+                for(i=len(argsFB)-2; i>=0; i--) { finalArgsFB.push(argsFB[i]); }
+            } else {
+                for(i=len(argsFB)-1; i>=0; i--) { finalArgsFB.push(argsFB[i]); }
+            }
+            resultFB = callbackFB(finalArgsFB, thread, this);
+            if (methodDesc[len(methodDesc)-1] != "V") { thread.opStack.push(resultFB == null ? 0 : resultFB); }
+            return False;
+        }
+
+        if ((target["access"] & 256) == 256) {
+            nativeKey = null; searchClass2 = className;
+            while (searchClass2 != null) {
+                candidateKey = searchClass2 + "::" + methodName + ":" + methodDesc;
+                if (this.natives.contains(candidateKey)) { nativeKey = candidateKey; break; }
+                searchCls2 = this.classMgr.loadClass(searchClass2);
+                searchClass2 = searchCls2 != null ? searchCls2["super_class"] : null;
+            }
+            if (nativeKey == null) { raise "UnsatisfiedLinkError: " + className + "::" + methodName + ":" + methodDesc; }
+            callback = this.natives.get(nativeKey);
+            argCount = getArgCount(methodDesc); args = list(); for(i=0; i<argCount; i++) { args.push(thread.opStack.pop()); }
+            if (methodName == "<init>") { thread.opStack.pop(); }
+            finalArgs = list(); for(i=len(args)-1; i>=0; i--) { finalArgs.push(args[i]); }
+            result = callback(finalArgs, thread, this);
+            if (methodDesc[len(methodDesc)-1] != "V") { thread.opStack.push(result == null ? 0 : result); }
+        } else {
+            argCount = getArgCount(methodDesc); args = list(); for(i=0; i<argCount; i++) { args.push(thread.opStack.pop()); }
+            newFrame = new Frame(target, cls); localIdx = 0;
+            if (methodName == "<init>") {
+                objRef = thread.opStack.pop();
+                newFrame.locals[localIdx++] = objRef;
+            }
+            for(i=len(args)-1; i>=0; i--) { newFrame.locals[localIdx++] = args[i]; }
+            thread.callStack.push(newFrame);
+        }
+        return False;
+    }
+
+    func invokeVirtual(className, methodName, methodDesc, thread) {
+        argCount = getArgCount(methodDesc); args = list(); for(i=0; i<argCount; i++) { args.push(thread.opStack.pop()); }
+        objRef = thread.opStack.pop(); 
+
+        if (objRef == null) { 
+            this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")), thread); return; 
+        }
+
+        if (typeof(objRef) == "hashmap" and objRef.contains("__lambda__") and objRef["__lambda__"] == True) {
+            implClass = objRef["__lambda_implClass__"];
+            implMethod = objRef["__lambda_implMethod__"];
+            implDesc = objRef["__lambda_implDesc__"];
+            captured = objRef["__lambda_captured__"];
+            if (implMethod != null and implClass != null) {
+                cls = this.classMgr.loadClass(implClass);
+                if (cls != null) {
+                    targetM = implDesc != null ? cls["methods"].get(implMethod + ":" + implDesc) : null;
+                    if (targetM == null) {
+                        allKeys = cls["methods"].keys();
+                        for (ki=0; ki<len(allKeys); ki++) {
+                            if (allKeys[ki].starts_with(implMethod + ":")) { targetM = cls["methods"].get(allKeys[ki]); break; }
+                        }
+                    }
+                    if (targetM != null) {
+                        newF = new Frame(targetM, cls);
+                        localIdx = 0;
+                        for(ci=0; ci<len(captured); ci++) { newF.locals[localIdx++] = captured[ci]; }
+                        for(ai=len(args)-1; ai>=0; ai--) { newF.locals[localIdx++] = args[ai]; }
+                        thread.callStack.push(newF); return;
+                    }
+                }
+            }
+            if (methodDesc[len(methodDesc)-1] != "V") { thread.opStack.push(0); }
+            return;
+        }
+
+        finalArgs = list(); finalArgs.push(objRef);
+        for(i=len(args)-1; i>=0; i--) { finalArgs.push(args[i]); }
+
+        actualClassName = objRef["__class__"]; searchClass = actualClassName;
+        nativeCallback = null;
+        while (searchClass != null) {
+            nativeKey = searchClass + "::" + methodName + ":" + methodDesc;
+            if (this.natives.contains(nativeKey)) { nativeCallback = this.natives.get(nativeKey); break; }
+            searchCls = this.classMgr.loadClass(searchClass);
+            searchClass = searchCls != null ? searchCls["super_class"] : null;
+        }
+        if (nativeCallback == null) {
+            nativeKey2 = className + "::" + methodName + ":" + methodDesc;
+            if (this.natives.contains(nativeKey2)) { nativeCallback = this.natives.get(nativeKey2); }
+        }
+        if (nativeCallback != null) {
+            result = nativeCallback(finalArgs, thread, this);
+            if (methodDesc[len(methodDesc)-1] != "V") { thread.opStack.push(result == null ? 0 : result); }
+            return;
+        }
+
+        actualClassName = objRef["__class__"]; currClass = this.classMgr.loadClass(actualClassName); targetMethod = null;
+        while (currClass != null) {
+            if (currClass.contains("methods") == False) { break; }
+            targetMethod = currClass["methods"].get(methodName + ":" + methodDesc);
+            if (targetMethod != null) { break; } 
+            superName = currClass["super_class"]; if (superName == null) { break; }
+            currClass = this.classMgr.loadClass(superName);
+        }
+
+        if (targetMethod == null) { raise "AbstractMethodError: " + methodName; }
+        newFrame = new Frame(targetMethod, currClass); localIdx = 0;
+        for(i=0; i<len(finalArgs); i++) { newFrame.locals[localIdx++] = finalArgs[i]; }
+        thread.callStack.push(newFrame);
+    }
+
+    func handleException(exceptionObj, thread) {
+        excClass = exceptionObj["__class__"];
+        
+        while (len(thread.callStack) > 0) {
+            frame = thread.callStack[len(thread.callStack) - 1];
+            currPc = frame.pc - 1;
+            cp = frame.classObj["cp"];
+            
+            if (frame.exceptions != null) {
+                for(i=0; i<len(frame.exceptions); i++) {
+                    exc = frame.exceptions[i];
+                    if (currPc >= exc["start_pc"] and currPc < exc["end_pc"]) {
+                        
+                        matches = False;
+                        if (exc["catch_type"] == 0) { 
+                            matches = True; // finally block
+                        } else {
+                            catchClsName = cp[cp[exc["catch_type"]]["name_idx"]]["val"];
+                            matches = this.classMgr.isSubclass(excClass, catchClsName);
+                        }
+                        
+                        if (matches) {
+                            while(len(thread.opStack) > 0) { thread.opStack.pop(); } 
+                            thread.opStack.push(exceptionObj); 
+                            frame.pc = exc["handler_pc"]; 
+                            return; 
+                        }
+                    }
+                }
+            }
+            thread.callStack.pop();
+        }
+        showln("Thread " + str(thread.tid) + " Died: Uncaught Exception: " + exceptionObj["__class__"]);
+        thread.state = "DEAD";
+    }
+
+    func run(mainClassName, argsArray) {
+        mainThread = new JavaThread(0); this.threads.push(mainThread);
+        cls = this.classMgr.loadClass(mainClassName);
+        if (cls == null) { raise "Main class not found: " + mainClassName; }
+        this.initClassIfNeeded(cls, mainThread);
+
+        mainMethod = cls["methods"].get("main:([Ljava/lang/String;)V");
+        if (mainMethod == null) { raise "Main method not found"; }
+        
+        frame = new Frame(mainMethod, cls); frame.locals[0] = argsArray; mainThread.callStack.push(frame);
+        this.threadSchedulerLoop();
+    }
+
+    func threadSchedulerLoop() {
+        while (len(this.threads) > 0) {
+            all_dead = True;
+            for (t = 0; t < len(this.threads); t++) {
+                thread = this.threads[t];
+                if (thread.state == "DEAD") { continue; }
+                if (thread.state == "WAITING") { all_dead = False; continue; } 
+                if (thread.state == "BLOCKED") { all_dead = False; continue; } 
+                
+                all_dead = False;
+                
+                instructions_run = 0;
+                while (instructions_run < 30 and len(thread.callStack) > 0 and thread.state == "RUNNING") {
+                    this.executeInstruction(thread);
+                    instructions_run++;
+                }
+                if (len(thread.callStack) == 0 and thread.state == "RUNNING") { thread.state = "DEAD"; }
+            }
+            if (all_dead) { break; } 
+        }
+    }
+

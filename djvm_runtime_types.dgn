@@ -1,0 +1,17 @@
+// DJVM: runtime types - call frame and thread state
+class Frame {
+    code = null; pc = 0; locals = null; classObj = null; exceptions = null;
+    func init(method, classObj) {
+        this.code = method["code"]; this.pc = 0; this.classObj = classObj;
+        this.exceptions = method["exceptions"];
+        this.locals = list(); for(i=0; i<method["max_locals"]; i++) { this.locals.push(0); }
+    }
+}
+
+class JavaThread {
+    tid = 0; callStack = null; opStack = null; state = "RUNNING"; 
+    func init(tid) {
+        this.tid = tid; this.callStack = list(); this.opStack = list();
+    }
+}
+

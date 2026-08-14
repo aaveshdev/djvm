@@ -1,0 +1,79 @@
+// DJVM: Exception type natives
+func registerExceptionNatives(jvm) {
+        jvm.registerNative("java/lang/Throwable", "<init>", "()V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("message", null); return null;
+        });
+        jvm.registerNative("java/lang/Throwable", "<init>", "(Ljava/lang/String;)V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("message", args[1]); return null;
+        });
+        jvm.registerNative("java/lang/Throwable", "getMessage", "()Ljava/lang/String;", func(args, thread, jvm) {
+            msg = args[0]["__fields__"].get("message");
+            return msg != null ? msg : newJavaString("", jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/Throwable", "toString", "()Ljava/lang/String;", func(args, thread, jvm) {
+            cls = args[0]["__class__"]; msg = args[0]["__fields__"].get("message");
+            msgStr = msg != null ? (msg.contains("__fields__") ? msg["__fields__"].get("value") : "") : "";
+            return newJavaString(cls + ": " + msgStr, jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/Throwable", "printStackTrace", "()V", func(args, thread, jvm) {
+            cls = args[0]["__class__"]; msg = args[0]["__fields__"].get("message");
+            msgStr = msg != null ? (msg.contains("__fields__") ? msg["__fields__"].get("value") : "") : "";
+            showln(cls + ": " + msgStr); return null;
+        });
+        jvm.registerNative("java/lang/Exception", "<init>", "()V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("message", null); return null;
+        });
+        jvm.registerNative("java/lang/Exception", "<init>", "(Ljava/lang/String;)V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("message", args[1]); return null;
+        });
+        jvm.registerNative("java/lang/RuntimeException", "<init>", "()V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("message", null); return null;
+        });
+        jvm.registerNative("java/lang/RuntimeException", "<init>", "(Ljava/lang/String;)V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("message", args[1]); return null;
+        });
+        jvm.registerNative("java/lang/IllegalArgumentException", "<init>", "(Ljava/lang/String;)V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("message", args[1]); return null;
+        });
+        jvm.registerNative("java/lang/IllegalStateException", "<init>", "(Ljava/lang/String;)V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("message", args[1]); return null;
+        });
+        jvm.registerNative("java/lang/IndexOutOfBoundsException", "<init>", "(Ljava/lang/String;)V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("message", args[1]); return null;
+        });
+        jvm.registerNative("java/lang/NullPointerException", "<init>", "()V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("message", null); return null;
+        });
+        jvm.registerNative("java/lang/UnsupportedOperationException", "<init>", "()V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("message", null); return null;
+        });
+        jvm.registerNative("java/lang/UnsupportedOperationException", "<init>", "(Ljava/lang/String;)V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("message", args[1]); return null;
+        });
+
+        jvm.registerNative("java/lang/ArithmeticException", "<init>", "(Ljava/lang/String;)V", func(args, thread, jvm) {
+            msg = args[1] == null ? null : args[1]["__fields__"].get("value");
+            args[0]["__fields__"].set("__message__", msg); return null;
+        });
+        jvm.registerNative("java/lang/ArithmeticException", "<init>", "()V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("__message__", null); return null;
+        });
+
+        jvm.registerNative("java/util/NoSuchElementException", "<init>", "()V", func(args, thread, jvm) { return null; });
+        jvm.registerNative("java/util/NoSuchElementException", "<init>", "(Ljava/lang/String;)V", func(args, thread, jvm) { return null; });
+
+        jvm.registerNative("java/util/EmptyStackException", "<init>", "()V", func(args, thread, jvm) { return null; });
+
+        jvm.registerNative("java/util/ConcurrentModificationException", "<init>", "()V", func(args, thread, jvm) { return null; });
+
+        jvm.registerNative("java/lang/ClassCastException", "<init>", "(Ljava/lang/String;)V", func(args, thread, jvm) { return null; });
+        jvm.registerNative("java/lang/ArrayIndexOutOfBoundsException", "<init>", "(I)V", func(args, thread, jvm) { return null; });
+        jvm.registerNative("java/lang/ArrayIndexOutOfBoundsException", "<init>", "(Ljava/lang/String;)V", func(args, thread, jvm) { return null; });
+        jvm.registerNative("java/lang/StringIndexOutOfBoundsException", "<init>", "(I)V", func(args, thread, jvm) { return null; });
+        jvm.registerNative("java/lang/StringIndexOutOfBoundsException", "<init>", "(Ljava/lang/String;)V", func(args, thread, jvm) { return null; });
+        jvm.registerNative("java/lang/StackOverflowError", "<init>", "()V", func(args, thread, jvm) { return null; });
+        jvm.registerNative("java/lang/OutOfMemoryError", "<init>", "()V", func(args, thread, jvm) { return null; });
+        jvm.registerNative("java/lang/AssertionError", "<init>", "()V", func(args, thread, jvm) { return null; });
+        jvm.registerNative("java/lang/AssertionError", "<init>", "(Ljava/lang/Object;)V", func(args, thread, jvm) { return null; });
+
+}

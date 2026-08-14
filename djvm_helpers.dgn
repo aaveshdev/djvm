@@ -1,0 +1,258 @@
+// DJVM: shared helpers - heap allocation, object construction, bytecode/constant-pool utilities
+import "file";
+
+
+global_heap = hashmap();
+heap_ptr = 1;
+
+func allocateHeap(obj) {
+    id = heap_ptr; heap_ptr = heap_ptr + 1;
+    global_heap.set(id, obj);
+    return id;
+}
+
+func system_gc(jvm) {
+    showln("[GC] Starting Mark & Sweep...");
+    marked = hashmap();
+
+    classes = jvm.classMgr.cache.keys();
+    for (i=0; i<len(classes); i++) {
+        cls = jvm.classMgr.cache.get(classes[i]);
+        statics = cls["static_fields"].keys();
+        for (j=0; j<len(statics); j++) {
+            val = cls["static_fields"].get(statics[j]);
+            if (val != null and typeof(val) == "hashmap" and val.contains("__id__")) { mark_object(val["__id__"], marked); }
+        }
+    }
+
+    for (t=0; t<len(jvm.threads); t++) {
+        thread = jvm.threads[t];
+        for (f=0; f<len(thread.callStack); f++) {
+            frame = thread.callStack[f];
+            for (l=0; l<len(frame.locals); l++) {
+                val = frame.locals[l];
+                if (val != null and typeof(val) == "hashmap" and val.contains("__id__")) { mark_object(val["__id__"], marked); }
+            }
+        }
+        for (o=0; o<len(thread.opStack); o++) {
+            val = thread.opStack[o];
+            if (val != null and typeof(val) == "hashmap" and val.contains("__id__")) { mark_object(val["__id__"], marked); }
+        }
+    }
+
+    all_ids = global_heap.keys(); freed = 0;
+    for (i=0; i<len(all_ids); i++) {
+        id = all_ids[i];
+        if (marked.contains(id) == False) { global_heap.remove(id); freed++; }
+    }
+    showln("[GC] Reclaimed " + str(freed) + " objects.");
+}
+
+func mark_object(id, marked_map) {
+    if (marked_map.contains(id)) { return; } 
+    marked_map.set(id, True);
+    obj = global_heap.get(id); if (obj == null) { return; }
+    
+    if (obj.contains("__fields__")) {
+        fields = obj["__fields__"].keys();
+        for (i=0; i<len(fields); i++) {
+            val = obj["__fields__"].get(fields[i]);
+            if (val != null and typeof(val) == "hashmap" and val.contains("__id__")) { mark_object(val["__id__"], marked_map); }
+        }
+    }
+    if (obj.contains("__array__")) {
+        arr = obj["__array__"];
+        for (i=0; i<len(arr); i++) {
+            val = arr[i];
+            if (val != null and typeof(val) == "hashmap" and val.contains("__id__")) { mark_object(val["__id__"], marked_map); }
+        }
+    }
+}
+
+func str_replace_char(s, old_c, new_c) {
+    res = ""; i = 0;
+    while (i < len(s)) {
+        if (s[i] == old_c) { res = res + new_c; } else { res = res + s[i]; }
+        i++;
+    }
+    return res;
+}
+
+func jvmKeyStr(k) {
+    if (k == null) { return "__null__"; }
+    if (typeof(k) != "hashmap") { return str(k); }
+    if (k.contains("__fields__")) {
+        v = k["__fields__"].get("value");
+        if (v != null) { return str(v); }
+    }
+    return "__id__" + str(k["__id__"]);
+}
+
+
+
+func defaultFieldValue(desc) {
+    if (desc == null or len(desc) == 0) { return 0; }
+    c = desc[0];
+    if (c == "L" or c == "[") { return null; }
+    if (c == "D" or c == "F") { return 0.0; }
+    return 0; // B C I J S Z
+}
+
+func newJavaObject(classDef) {
+    obj = hashmap();
+    obj.set("__type__", "object");
+    obj.set("__class__", classDef == null ? "java/lang/Object" : classDef["name"]); 
+    obj.set("__id__", allocateHeap(obj)); 
+    fields = hashmap();
+    if (classDef != null and classDef.contains("fields")) {
+        declaredFields = classDef["fields"];
+        for (fi=0; fi<len(declaredFields); fi++) {
+            fd = declaredFields[fi];
+            if ((fd["access"] & 8) == 0) {
+                fields.set(fd["name"], defaultFieldValue(fd["desc"]));
+            }
+        }
+    }
+    obj.set("__fields__", fields);
+    obj.set("__monitor_owner__", -1); 
+    obj.set("__monitor_count__", 0);
+    obj.set("__wait_set__", list()); 
+    return obj;
+}
+
+func newJavaString(strVal, classMgr) {
+    strCls = classMgr.loadClass("java/lang/String");
+    obj = newJavaObject(strCls);
+    obj["__fields__"].set("value", strVal); 
+    return obj;
+}
+
+func newJavaClassObj(className, classMgr) {
+    clsCls = classMgr.loadClass("java/lang/Class");
+    obj = newJavaObject(clsCls);
+    obj["__fields__"].set("name", className); 
+    return obj;
+}
+
+func getArgCount(desc) {
+    if (desc == null) { return 0; }
+    count = 0; i = 1; lenD = len(desc);
+    while (i < lenD) {
+        c = desc[i];
+        if (c == ")") { break; }
+        if (c == "L") { while (desc[i] != ";") { i++; } count++; } 
+        else if (c == "[") { } 
+        else { count++; } i++;
+    }
+    return count;
+}
+
+func resolveCP(cp, idx) {
+    if (idx >= len(cp)) { return null; }
+    entry = cp[idx]; if (entry == null) { return null; }
+    tag = entry["tag"];
+    if (tag == 3 or tag == 4 or tag == 5 or tag == 6) { return entry["val"]; } 
+    if (tag == 8) { return cp[entry["str_idx"]]["val"]; } 
+    if (tag == 7) { return cp[entry["name_idx"]]["val"]; } 
+    return null;
+}
+
+func resolveCPforLDC(cp, idx) {
+    if (idx >= len(cp)) { return null; }
+    entry = cp[idx]; if (entry == null) { return null; }
+    tag = entry["tag"];
+    if (tag == 7) {
+        res = hashmap(); res.set("__is_class_ref__", True);
+        res.set("name", cp[entry["name_idx"]]["val"]);
+        return res;
+    }
+    return resolveCP(cp, idx);
+}
+
+func resolveMember(cp, idx) {
+    if (idx >= len(cp)) { return null; }
+    ref = cp[idx]; if (ref == null) { return null; }
+    className = cp[cp[ref["class_idx"]]["name_idx"]]["val"];
+    natRef = cp[ref["nat_idx"]];
+    name = cp[natRef["name_idx"]]["val"]; desc = cp[natRef["desc_idx"]]["val"];
+    res = hashmap(); res.set("class", className); res.set("name", name); res.set("desc", desc);
+    return res;
+}
+
+func readS4(code, pc) {
+    val = (code[pc] << 24) | (code[pc+1] << 16) | (code[pc+2] << 8) | code[pc+3];
+    if (val >= 2147483648) { val = val - 4294967296; }
+    return val;
+}
+
+func jvmFormat(fmt, fmtArr) {
+    result = ""; i = 0; ai = 0;
+    while (i < len(fmt)) {
+        if (fmt[i] != "%" or i + 1 >= len(fmt)) { result = result + fmt[i]; i++; }
+        else {
+            i++; // skip %
+            if (fmt[i] == "%") { result = result + "%"; i++; }
+            else if (fmt[i] == "n") { result = result + "\n"; i++; }
+            else {
+                flags = ""; while (i < len(fmt) and (fmt[i] == "-" or fmt[i] == "+" or fmt[i] == " " or fmt[i] == "0" or fmt[i] == ",")) { flags = flags + fmt[i]; i++; }
+                widthStr = ""; while (i < len(fmt) and fmt[i] >= "0" and fmt[i] <= "9") { widthStr = widthStr + fmt[i]; i++; }
+                width = len(widthStr) > 0 ? int(widthStr) : 0;
+                precStr = ""; prec = -1;
+                if (i < len(fmt) and fmt[i] == ".") { i++; while (i < len(fmt) and fmt[i] >= "0" and fmt[i] <= "9") { precStr = precStr + fmt[i]; i++; } prec = len(precStr) > 0 ? int(precStr) : 0; }
+                spec = i < len(fmt) ? fmt[i] : "s"; i++;
+                argVal = ai < len(fmtArr) ? fmtArr[ai] : null; ai++;
+                rawNum = argVal == null ? 0 : (argVal.contains("__fields__") and argVal["__fields__"].get("value") != null ? argVal["__fields__"].get("value") : 0);
+                rawStr = argVal == null ? "null" : (argVal.contains("__fields__") and argVal["__fields__"].get("value") != null ? str(argVal["__fields__"].get("value")) : str(rawNum));
+                piece = "";
+                if (spec == "d" or spec == "i") {
+                    piece = str(int(rawNum));
+                    if (flags.contains("+") and int(rawNum) >= 0) { piece = "+" + piece; }
+                } else if (spec == "f") {
+                    fv = float(rawNum); p = prec >= 0 ? prec : 6;
+                    factor = 1; pp = 0; while (pp < p) { factor = factor * 10; pp++; }
+                    rounded = int(fv * factor + 0.5); intPart = int(rounded / factor); fracPart = rounded % factor;
+                    fracStr = str(fracPart); while (len(fracStr) < p) { fracStr = "0" + fracStr; }
+                    piece = p > 0 ? str(intPart) + "." + fracStr : str(intPart);
+                } else if (spec == "e") {
+                    fv = float(rawNum); sign = fv < 0 ? "-" : ""; fv = fv < 0 ? -fv : fv;
+                    exp2 = 0;
+                    if (fv >= 10.0) { while (fv >= 10.0) { fv = fv / 10.0; exp2++; } }
+                    else if (fv > 0.0 and fv < 1.0) { while (fv < 1.0) { fv = fv * 10.0; exp2--; } }
+                    p2 = prec >= 0 ? prec : 6; factor2 = 1; pp2 = 0; while (pp2 < p2) { factor2 = factor2 * 10; pp2++; }
+                    rounded2 = int(fv * factor2 + 0.5); intPart2 = int(rounded2 / factor2); fracPart2 = rounded2 % factor2;
+                    fracStr2 = str(fracPart2); while (len(fracStr2) < p2) { fracStr2 = "0" + fracStr2; }
+                    expStr = str(exp2 < 0 ? -exp2 : exp2); while (len(expStr) < 2) { expStr = "0" + expStr; }
+                    piece = sign + str(intPart2) + (p2 > 0 ? "." + fracStr2 : "") + "e" + (exp2 < 0 ? "-" : "+") + expStr;
+                } else if (spec == "x" or spec == "X") {
+                    n = int(rawNum); v2 = n < 0 ? n + 4294967296 : n;
+                    hex = "0123456789abcdef"; hs = "";
+                    if (v2 == 0) { hs = "0"; }
+                    else { while (v2 > 0) { hs = hex[v2 % 16] + hs; v2 = int(v2 / 16); } }
+                    piece = spec == "X" ? hs.upper() : hs;
+                } else if (spec == "o") {
+                    n = int(rawNum); v3 = n < 0 ? n + 4294967296 : n; os = "";
+                    if (v3 == 0) { os = "0"; }
+                    else { while (v3 > 0) { os = str(v3 % 8) + os; v3 = int(v3 / 8); } }
+                    piece = os;
+                } else if (spec == "b" or spec == "B") {
+                    piece = (argVal != null and argVal != 0) ? "true" : "false";
+                } else if (spec == "c" or spec == "C") {
+                    piece = argVal == null ? "\0" : chr(int(rawNum));
+                } else if (spec == "s" or spec == "S") {
+                    piece = rawStr;
+                    if (prec >= 0 and prec < len(piece)) { piece = piece.substring(0, prec); }
+                    if (spec == "S") { piece = piece.upper(); }
+                } else { piece = "%" + spec; }
+                if (width > 0 and len(piece) < width) {
+                    padChar = (flags.contains("0") and spec != "s") ? "0" : " ";
+                    pad = ""; while (len(pad) + len(piece) < width) { pad = pad + padChar; }
+                    piece = flags.contains("-") ? piece + pad : pad + piece;
+                }
+                result = result + piece;
+            }
+        }
+    }
+    return result;
+}
+
+

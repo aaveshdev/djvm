@@ -1,0 +1,446 @@
+// DJVM: Map/Set collection natives: HashMap, HashSet, TreeMap, TreeSet, Collections, Optional
+func registerMapNatives(jvm) {
+        jvm.registerNative("java/util/HashMap", "<init>", "()V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("__keys__", list());
+            args[0]["__fields__"].set("__vals__", list()); return null;
+        });
+        jvm.registerNative("java/util/HashMap", "<init>", "(I)V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("__keys__", list());
+            args[0]["__fields__"].set("__vals__", list()); return null;
+        });
+        jvm.registerNative("java/util/HashMap", "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", func(args, thread, jvm) {
+            keys = args[0]["__fields__"].get("__keys__"); vals = args[0]["__fields__"].get("__vals__");
+            k = args[1]; v = args[2];
+            kstr = jvmKeyStr(k);
+            i = 0; while (i < len(keys)) {
+                ek = keys[i]; ekstr = jvmKeyStr(ek);
+                if (ekstr == kstr) { old = vals[i]; vals[i] = v; return old; }
+                i++;
+            }
+            keys.push(k); vals.push(v); return null;
+        });
+        jvm.registerNative("java/util/HashMap", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", func(args, thread, jvm) {
+            keys = args[0]["__fields__"].get("__keys__"); vals = args[0]["__fields__"].get("__vals__");
+            k = args[1];
+            kstr = jvmKeyStr(k);
+            i = 0; while (i < len(keys)) {
+                ek = keys[i]; ekstr = jvmKeyStr(ek);
+                if (ekstr == kstr) { return vals[i]; }
+                i++;
+            }
+            return null;
+        });
+        jvm.registerNative("java/util/HashMap", "containsKey", "(Ljava/lang/Object;)Z", func(args, thread, jvm) {
+            keys = args[0]["__fields__"].get("__keys__");
+            k = args[1];
+            kstr = jvmKeyStr(k);
+            i = 0; while (i < len(keys)) {
+                ek = keys[i]; ekstr = jvmKeyStr(ek);
+                if (ekstr == kstr) { return 1; }
+                i++;
+            }
+            return 0;
+        });
+        jvm.registerNative("java/util/HashMap", "containsValue", "(Ljava/lang/Object;)Z", func(args, thread, jvm) {
+            vals = args[0]["__fields__"].get("__vals__"); target = args[1]; i = 0;
+            while (i < len(vals)) {
+                v = vals[i];
+                same = (v == target) or (v != null and target != null and v.contains("__id__") and target.contains("__id__") and v["__id__"] == target["__id__"]);
+                if (same) { return 1; }
+                i++;
+            }
+            return 0;
+        });
+        jvm.registerNative("java/util/HashMap", "remove", "(Ljava/lang/Object;)Ljava/lang/Object;", func(args, thread, jvm) {
+            keys = args[0]["__fields__"].get("__keys__"); vals = args[0]["__fields__"].get("__vals__");
+            k = args[1];
+            kstr = jvmKeyStr(k);
+            i = 0; while (i < len(keys)) {
+                ek = keys[i]; ekstr = jvmKeyStr(ek);
+                if (ekstr == kstr) { old = vals[i]; keys.remove_at(i); vals.remove_at(i); return old; }
+                i++;
+            }
+            return null;
+        });
+        jvm.registerNative("java/util/HashMap", "size", "()I", func(args, thread, jvm) {
+            return len(args[0]["__fields__"].get("__keys__"));
+        });
+        jvm.registerNative("java/util/HashMap", "isEmpty", "()Z", func(args, thread, jvm) {
+            return len(args[0]["__fields__"].get("__keys__")) == 0 ? 1 : 0;
+        });
+        jvm.registerNative("java/util/HashMap", "clear", "()V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("__keys__", list()); args[0]["__fields__"].set("__vals__", list()); return null;
+        });
+        jvm.registerNative("java/util/HashMap", "keySet", "()Ljava/util/Set;", func(args, thread, jvm) {
+            keys = args[0]["__fields__"].get("__keys__");
+            setObj = newJavaObject(jvm.classMgr.loadClass("java/util/HashSet"));
+            setObj["__fields__"].set("__data__", keys); return setObj;
+        });
+        jvm.registerNative("java/util/HashMap", "values", "()Ljava/util/Collection;", func(args, thread, jvm) {
+            vals = args[0]["__fields__"].get("__vals__");
+            listObj = newJavaObject(jvm.classMgr.loadClass("java/util/ArrayList"));
+            listObj["__fields__"].set("__data__", vals); listObj["__fields__"].set("__size__", len(vals)); return listObj;
+        });
+
+        jvm.registerNative("java/util/HashSet", "<init>", "()V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("__data__", list()); return null;
+        });
+        jvm.registerNative("java/util/HashSet", "add", "(Ljava/lang/Object;)Z", func(args, thread, jvm) {
+            data = args[0]["__fields__"].get("__data__"); val = args[1];
+            vstr = jvmKeyStr(val);
+            i = 0; while (i < len(data)) {
+                e = data[i]; estr = jvmKeyStr(e);
+                if (estr == vstr) { return 0; }
+                i++;
+            }
+            data.push(val); return 1;
+        });
+        jvm.registerNative("java/util/HashSet", "contains", "(Ljava/lang/Object;)Z", func(args, thread, jvm) {
+            data = args[0]["__fields__"].get("__data__"); val = args[1];
+            vstr = jvmKeyStr(val);
+            i = 0; while (i < len(data)) {
+                e = data[i]; estr = jvmKeyStr(e);
+                if (estr == vstr) { return 1; }
+                i++;
+            }
+            return 0;
+        });
+        jvm.registerNative("java/util/HashSet", "remove", "(Ljava/lang/Object;)Z", func(args, thread, jvm) {
+            data = args[0]["__fields__"].get("__data__"); val = args[1];
+            vstr = jvmKeyStr(val);
+            i = 0; while (i < len(data)) {
+                e = data[i]; estr = jvmKeyStr(e);
+                if (estr == vstr) { data.remove_at(i); return 1; }
+                i++;
+            }
+            return 0;
+        });
+        jvm.registerNative("java/util/HashSet", "size", "()I", func(args, thread, jvm) { return len(args[0]["__fields__"].get("__data__")); });
+        jvm.registerNative("java/util/HashSet", "isEmpty", "()Z", func(args, thread, jvm) { return len(args[0]["__fields__"].get("__data__")) == 0 ? 1 : 0; });
+        jvm.registerNative("java/util/HashSet", "clear", "()V", func(args, thread, jvm) { args[0]["__fields__"].set("__data__", list()); return null; });
+        jvm.registerNative("java/util/HashSet", "iterator", "()Ljava/util/Iterator;", func(args, thread, jvm) {
+            itObj = newJavaObject(jvm.classMgr.loadClass("java/util/Iterator"));
+            itObj["__fields__"].set("__src__", args[0]["__fields__"].get("__data__"));
+            itObj["__fields__"].set("__idx__", 0); return itObj;
+        });
+
+        jvm.registerNative("java/util/Iterator", "hasNext", "()Z", func(args, thread, jvm) {
+            src = args[0]["__fields__"].get("__src__"); idx = int(args[0]["__fields__"].get("__idx__"));
+            return idx < len(src) ? 1 : 0;
+        });
+        jvm.registerNative("java/util/Iterator", "next", "()Ljava/lang/Object;", func(args, thread, jvm) {
+            src = args[0]["__fields__"].get("__src__"); idx = int(args[0]["__fields__"].get("__idx__"));
+            if (idx >= len(src)) { jvm.handleException(newJavaObject(jvm.classMgr.loadClass("java/util/NoSuchElementException")), thread); return null; }
+            args[0]["__fields__"].set("__idx__", idx + 1); return src[idx];
+        });
+
+        jvm.registerNative("java/util/Collections", "sort", "(Ljava/util/List;)V", func(args, thread, jvm) {
+            data = args[0]["__fields__"].get("__data__"); n = len(data); i = 1;
+            while (i < n) {
+                key = data[i]; j = i - 1;
+                while (j >= 0) {
+                    a = data[j]; b = key;
+                    av = a == null ? "" : (a.contains("__fields__") and a["__fields__"].get("value") != null ? str(a["__fields__"].get("value")) : str(a["__id__"]));
+                    bv = b == null ? "" : (b.contains("__fields__") and b["__fields__"].get("value") != null ? str(b["__fields__"].get("value")) : str(b["__id__"]));
+                    if (av <= bv) { break; }
+                    data[j+1] = data[j]; j--;
+                }
+                data[j+1] = key; i++;
+            }
+            return null;
+        });
+        jvm.registerNative("java/util/Collections", "reverse", "(Ljava/util/List;)V", func(args, thread, jvm) {
+            data = args[0]["__fields__"].get("__data__"); n = len(data); i = 0;
+            while (i < n / 2) { tmp = data[i]; data[i] = data[n-1-i]; data[n-1-i] = tmp; i++; }
+            return null;
+        });
+        jvm.registerNative("java/util/Collections", "shuffle", "(Ljava/util/List;)V", func(args, thread, jvm) {
+            data = args[0]["__fields__"].get("__data__"); n = len(data); i = n - 1;
+            while (i > 0) {
+                jvm.tick_clock = (jvm.tick_clock * 1664525 + 1013904223) % 4294967296;
+                j = jvm.tick_clock % (i + 1);
+                tmp = data[i]; data[i] = data[j]; data[j] = tmp; i--;
+            }
+            return null;
+        });
+        jvm.registerNative("java/util/Collections", "max", "(Ljava/util/Collection;)Ljava/lang/Object;", func(args, thread, jvm) {
+            data = args[0]["__fields__"].get("__data__"); best = null; i = 0;
+            while (i < len(data)) {
+                e = data[i];
+                if (best == null) { best = e; }
+                else {
+                    ev = e == null ? "" : (e.contains("__fields__") and e["__fields__"].get("value") != null ? str(e["__fields__"].get("value")) : str(e["__id__"]));
+                    bv = best.contains("__fields__") and best["__fields__"].get("value") != null ? str(best["__fields__"].get("value")) : str(best["__id__"]);
+                    if (ev > bv) { best = e; }
+                }
+                i++;
+            }
+            return best;
+        });
+        jvm.registerNative("java/util/Collections", "min", "(Ljava/util/Collection;)Ljava/lang/Object;", func(args, thread, jvm) {
+            data = args[0]["__fields__"].get("__data__"); best = null; i = 0;
+            while (i < len(data)) {
+                e = data[i];
+                if (best == null) { best = e; }
+                else {
+                    ev = e == null ? "" : (e.contains("__fields__") and e["__fields__"].get("value") != null ? str(e["__fields__"].get("value")) : str(e["__id__"]));
+                    bv = best.contains("__fields__") and best["__fields__"].get("value") != null ? str(best["__fields__"].get("value")) : str(best["__id__"]);
+                    if (ev < bv) { best = e; }
+                }
+                i++;
+            }
+            return best;
+        });
+        jvm.registerNative("java/util/Collections", "frequency", "(Ljava/util/Collection;Ljava/lang/Object;)I", func(args, thread, jvm) {
+            data = args[0]["__fields__"].get("__data__"); target = args[1]; count = 0; i = 0;
+            while (i < len(data)) {
+                e = data[i];
+                same = (e == target) or (e != null and target != null and e.contains("__id__") and target.contains("__id__") and e["__id__"] == target["__id__"]);
+                if (same) { count++; }
+                i++;
+            }
+            return count;
+        });
+        jvm.registerNative("java/util/Collections", "unmodifiableList", "(Ljava/util/List;)Ljava/util/List;", func(args, thread, jvm) { return args[0]; });
+        jvm.registerNative("java/util/Collections", "emptyList", "()Ljava/util/List;", func(args, thread, jvm) {
+            listObj = newJavaObject(jvm.classMgr.loadClass("java/util/ArrayList"));
+            listObj["__fields__"].set("__data__", list()); listObj["__fields__"].set("__size__", 0); return listObj;
+        });
+        jvm.registerNative("java/util/Collections", "singletonList", "(Ljava/lang/Object;)Ljava/util/List;", func(args, thread, jvm) {
+            listObj = newJavaObject(jvm.classMgr.loadClass("java/util/ArrayList"));
+            data = list(); data.push(args[0]);
+            listObj["__fields__"].set("__data__", data); listObj["__fields__"].set("__size__", 1); return listObj;
+        });
+
+        jvm.registerNative("java/util/TreeMap", "<init>", "()V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("__keys__", list()); args[0]["__fields__"].set("__vals__", hashmap()); return null;
+        });
+        jvm.registerNative("java/util/TreeMap", "put", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", func(args, thread, jvm) {
+            k = jvmKeyStr(args[1]); vals = args[0]["__fields__"].get("__vals__");
+            old = vals.get(k);
+            if (vals.contains(k) == False) {
+                keys = args[0]["__fields__"].get("__keys__"); keys.push(k);
+                i = len(keys) - 1;
+                while (i > 0 and keys[i] < keys[i-1]) {
+                    tmp = keys[i]; keys[i] = keys[i-1]; keys[i-1] = tmp; i--;
+                }
+            }
+            vals.set(k, args[2]); return old;
+        });
+        jvm.registerNative("java/util/TreeMap", "get", "(Ljava/lang/Object;)Ljava/lang/Object;", func(args, thread, jvm) {
+            k = jvmKeyStr(args[1]); return args[0]["__fields__"].get("__vals__").get(k);
+        });
+        jvm.registerNative("java/util/TreeMap", "containsKey", "(Ljava/lang/Object;)Z", func(args, thread, jvm) {
+            k = jvmKeyStr(args[1]); return args[0]["__fields__"].get("__vals__").contains(k) ? 1 : 0;
+        });
+        jvm.registerNative("java/util/TreeMap", "remove", "(Ljava/lang/Object;)Ljava/lang/Object;", func(args, thread, jvm) {
+            k = jvmKeyStr(args[1]); vals = args[0]["__fields__"].get("__vals__");
+            old = vals.get(k); if (vals.contains(k)) { vals.remove(k); }
+            keys = args[0]["__fields__"].get("__keys__");
+            newKeys = list(); for (i=0; i<len(keys); i++) { if (keys[i] != k) { newKeys.push(keys[i]); } }
+            args[0]["__fields__"].set("__keys__", newKeys); return old;
+        });
+        jvm.registerNative("java/util/TreeMap", "size", "()I", func(args, thread, jvm) {
+            return len(args[0]["__fields__"].get("__keys__"));
+        });
+        jvm.registerNative("java/util/TreeMap", "isEmpty", "()Z", func(args, thread, jvm) {
+            return len(args[0]["__fields__"].get("__keys__")) == 0 ? 1 : 0;
+        });
+        jvm.registerNative("java/util/TreeMap", "clear", "()V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("__keys__", list()); args[0]["__fields__"].set("__vals__", hashmap()); return null;
+        });
+        jvm.registerNative("java/util/TreeMap", "keySet", "()Ljava/util/Set;", func(args, thread, jvm) {
+            keys = args[0]["__fields__"].get("__keys__"); vals = args[0]["__fields__"].get("__vals__");
+            setObj = newJavaObject(jvm.classMgr.loadClass("java/util/TreeSet"));
+            setObj["__fields__"].set("__keys__", list()); setObj["__fields__"].set("__vals__", hashmap());
+            for (i=0; i<len(keys); i++) { 
+                setObj["__fields__"].get("__keys__").push(keys[i]);
+                setObj["__fields__"].get("__vals__").set(keys[i], vals.get(keys[i]));
+            }
+            return setObj;
+        });
+        jvm.registerNative("java/util/TreeMap", "firstKey", "()Ljava/lang/Object;", func(args, thread, jvm) {
+            keys = args[0]["__fields__"].get("__keys__");
+            if (len(keys) == 0) { jvm.handleException(newJavaObject(jvm.classMgr.loadClass("java/util/NoSuchElementException")), thread); return null; }
+            return args[0]["__fields__"].get("__vals__").get(keys[0]);
+        });
+        jvm.registerNative("java/util/TreeMap", "lastKey", "()Ljava/lang/Object;", func(args, thread, jvm) {
+            keys = args[0]["__fields__"].get("__keys__");
+            if (len(keys) == 0) { jvm.handleException(newJavaObject(jvm.classMgr.loadClass("java/util/NoSuchElementException")), thread); return null; }
+            return args[0]["__fields__"].get("__vals__").get(keys[len(keys)-1]);
+        });
+        jvm.registerNative("java/util/TreeMap", "values", "()Ljava/util/Collection;", func(args, thread, jvm) {
+            keys = args[0]["__fields__"].get("__keys__"); vals = args[0]["__fields__"].get("__vals__");
+            listObj = newJavaObject(jvm.classMgr.loadClass("java/util/ArrayList"));
+            listObj["__fields__"].set("__data__", list());
+            for (i=0; i<len(keys); i++) { listObj["__fields__"].get("__data__").push(vals.get(keys[i])); }
+            return listObj;
+        });
+        jvm.registerNative("java/util/TreeMap", "entrySet", "()Ljava/util/Set;", func(args, thread, jvm) {
+            return args[0]; // reuse map as entry-set (iterator will unpack)
+        });
+        jvm.registerNative("java/util/TreeMap", "iterator", "()Ljava/util/Iterator;", func(args, thread, jvm) {
+            keys = args[0]["__fields__"].get("__keys__"); vals = args[0]["__fields__"].get("__vals__");
+            items = list(); for (i=0; i<len(keys); i++) { items.push(vals.get(keys[i])); }
+            itObj = newJavaObject(jvm.classMgr.loadClass("java/util/Iterator"));
+            itObj["__fields__"].set("__items__", items); itObj["__fields__"].set("__idx__", 0); return itObj;
+        });
+
+        jvm.registerNative("java/util/TreeSet", "<init>", "()V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("__keys__", list()); args[0]["__fields__"].set("__vals__", hashmap()); return null;
+        });
+        jvm.registerNative("java/util/TreeSet", "add", "(Ljava/lang/Object;)Z", func(args, thread, jvm) {
+            k = jvmKeyStr(args[1]); vals = args[0]["__fields__"].get("__vals__");
+            if (vals.contains(k)) { return 0; }
+            vals.set(k, args[1]);
+            keys = args[0]["__fields__"].get("__keys__"); keys.push(k);
+            i = len(keys) - 1;
+            while (i > 0 and keys[i] < keys[i-1]) { tmp = keys[i]; keys[i] = keys[i-1]; keys[i-1] = tmp; i--; }
+            return 1;
+        });
+        jvm.registerNative("java/util/TreeSet", "contains", "(Ljava/lang/Object;)Z", func(args, thread, jvm) {
+            return args[0]["__fields__"].get("__vals__").contains(jvmKeyStr(args[1])) ? 1 : 0;
+        });
+        jvm.registerNative("java/util/TreeSet", "remove", "(Ljava/lang/Object;)Z", func(args, thread, jvm) {
+            k = jvmKeyStr(args[1]); vals = args[0]["__fields__"].get("__vals__");
+            if (vals.contains(k) == False) { return 0; }
+            vals.remove(k);
+            keys = args[0]["__fields__"].get("__keys__"); newKeys = list();
+            for (i=0; i<len(keys); i++) { if (keys[i] != k) { newKeys.push(keys[i]); } }
+            args[0]["__fields__"].set("__keys__", newKeys); return 1;
+        });
+        jvm.registerNative("java/util/TreeSet", "size", "()I", func(args, thread, jvm) {
+            return len(args[0]["__fields__"].get("__keys__"));
+        });
+        jvm.registerNative("java/util/TreeSet", "isEmpty", "()Z", func(args, thread, jvm) {
+            return len(args[0]["__fields__"].get("__keys__")) == 0 ? 1 : 0;
+        });
+        jvm.registerNative("java/util/TreeSet", "clear", "()V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("__keys__", list()); args[0]["__fields__"].set("__vals__", hashmap()); return null;
+        });
+        jvm.registerNative("java/util/TreeSet", "iterator", "()Ljava/util/Iterator;", func(args, thread, jvm) {
+            keys = args[0]["__fields__"].get("__keys__"); vals = args[0]["__fields__"].get("__vals__");
+            items = list(); for (i=0; i<len(keys); i++) { items.push(vals.get(keys[i])); }
+            itObj = newJavaObject(jvm.classMgr.loadClass("java/util/Iterator"));
+            itObj["__fields__"].set("__items__", items); itObj["__fields__"].set("__idx__", 0); return itObj;
+        });
+        jvm.registerNative("java/util/TreeSet", "first", "()Ljava/lang/Object;", func(args, thread, jvm) {
+            keys = args[0]["__fields__"].get("__keys__");
+            if (len(keys) == 0) { jvm.handleException(newJavaObject(jvm.classMgr.loadClass("java/util/NoSuchElementException")), thread); return null; }
+            return args[0]["__fields__"].get("__vals__").get(keys[0]);
+        });
+        jvm.registerNative("java/util/TreeSet", "last", "()Ljava/lang/Object;", func(args, thread, jvm) {
+            keys = args[0]["__fields__"].get("__keys__");
+            if (len(keys) == 0) { jvm.handleException(newJavaObject(jvm.classMgr.loadClass("java/util/NoSuchElementException")), thread); return null; }
+            return args[0]["__fields__"].get("__vals__").get(keys[len(keys)-1]);
+        });
+
+        jvm.registerNative("java/util/Optional", "of", "(Ljava/lang/Object;)Ljava/util/Optional;", func(args, thread, jvm) {
+            opt = newJavaObject(jvm.classMgr.loadClass("java/util/Optional"));
+            opt["__fields__"].set("__val__", args[0]); opt["__fields__"].set("__present__", 1); return opt;
+        });
+        jvm.registerNative("java/util/Optional", "ofNullable", "(Ljava/lang/Object;)Ljava/util/Optional;", func(args, thread, jvm) {
+            opt = newJavaObject(jvm.classMgr.loadClass("java/util/Optional"));
+            opt["__fields__"].set("__val__", args[0]); opt["__fields__"].set("__present__", args[0] != null ? 1 : 0); return opt;
+        });
+        jvm.registerNative("java/util/Optional", "empty", "()Ljava/util/Optional;", func(args, thread, jvm) {
+            opt = newJavaObject(jvm.classMgr.loadClass("java/util/Optional"));
+            opt["__fields__"].set("__val__", null); opt["__fields__"].set("__present__", 0); return opt;
+        });
+        jvm.registerNative("java/util/Optional", "get", "()Ljava/lang/Object;", func(args, thread, jvm) {
+            if (args[0]["__fields__"].get("__present__") == 0) {
+                jvm.handleException(newJavaObject(jvm.classMgr.loadClass("java/util/NoSuchElementException")), thread); return null;
+            }
+            return args[0]["__fields__"].get("__val__");
+        });
+        jvm.registerNative("java/util/Optional", "isPresent", "()Z", func(args, thread, jvm) {
+            return args[0]["__fields__"].get("__present__");
+        });
+        jvm.registerNative("java/util/Optional", "isEmpty", "()Z", func(args, thread, jvm) {
+            return args[0]["__fields__"].get("__present__") == 0 ? 1 : 0;
+        });
+        jvm.registerNative("java/util/Optional", "orElse", "(Ljava/lang/Object;)Ljava/lang/Object;", func(args, thread, jvm) {
+            if (args[0]["__fields__"].get("__present__") == 1) { return args[0]["__fields__"].get("__val__"); }
+            return args[1];
+        });
+
+        jvm.registerNative("java/util/Collections", "sort", "(Ljava/util/List;Ljava/util/Comparator;)V", func(args, thread, jvm) {
+            listObj = args[0]; cmp = args[1];
+            d = listObj["__fields__"].get("__data__");
+            n = len(d);
+            for (i=0; i<n; i++) {
+                for (j=0; j<n-i-1; j++) {
+                    if (jvmKeyStr(d[j]) > jvmKeyStr(d[j+1])) { tmp = d[j]; d[j] = d[j+1]; d[j+1] = tmp; }
+                }
+            }
+            return null;
+        });
+        jvm.registerNative("java/util/Collections", "swap", "(Ljava/util/List;II)V", func(args, thread, jvm) {
+            d = args[0]["__fields__"].get("__data__"); i = args[1]; j = args[2];
+            tmp = d[i]; d[i] = d[j]; d[j] = tmp; return null;
+        });
+        jvm.registerNative("java/util/Collections", "fill", "(Ljava/util/List;Ljava/lang/Object;)V", func(args, thread, jvm) {
+            d = args[0]["__fields__"].get("__data__");
+            for (i=0; i<len(d); i++) { d[i] = args[1]; }
+            return null;
+        });
+        jvm.registerNative("java/util/Collections", "nCopies", "(ILjava/lang/Object;)Ljava/util/List;", func(args, thread, jvm) {
+            n = args[0]; val = args[1];
+            listObj = newJavaObject(jvm.classMgr.loadClass("java/util/ArrayList"));
+            d = list(); for (i=0; i<n; i++) { d.push(val); }
+            listObj["__fields__"].set("__data__", d); return listObj;
+        });
+        jvm.registerNative("java/util/Collections", "disjoint", "(Ljava/util/Collection;Ljava/util/Collection;)Z", func(args, thread, jvm) {
+            d1 = args[0]["__fields__"].get("__data__"); d2 = args[1]["__fields__"].get("__data__");
+            for (i=0; i<len(d1); i++) {
+                k1 = jvmKeyStr(d1[i]);
+                for (j=0; j<len(d2); j++) { if (jvmKeyStr(d2[j]) == k1) { return 0; } }
+            }
+            return 1;
+        });
+        jvm.registerNative("java/util/Collections", "addAll", "(Ljava/util/Collection;[Ljava/lang/Object;)Z", func(args, thread, jvm) {
+            d = args[0]["__fields__"].get("__data__"); arr = args[1]["__array__"];
+            for (i=0; i<len(arr); i++) { d.push(arr[i]); }
+            return len(arr) > 0 ? 1 : 0;
+        });
+        jvm.registerNative("java/util/Collections", "binarySearch", "(Ljava/util/List;Ljava/lang/Object;)I", func(args, thread, jvm) {
+            d = args[0]["__fields__"].get("__data__"); k = jvmKeyStr(args[1]);
+            lo = 0; hi = len(d) - 1;
+            while (lo <= hi) {
+                mid = int((lo + hi) / 2); mk = jvmKeyStr(d[mid]);
+                if (mk == k) { return mid; }
+                else if (mk < k) { lo = mid + 1; } else { hi = mid - 1; }
+            }
+            return -(lo + 1);
+        });
+
+        jvm.registerNative("java/util/HashMap", "entrySet", "()Ljava/util/Set;", func(args, thread, jvm) {
+            return args[0]; // return self; entrySet iterates same structure
+        });
+        jvm.registerNative("java/util/HashMap", "forEach", "(Ljava/util/function/BiConsumer;)V", func(args, thread, jvm) {
+            return null; // lambda not supported yet
+        });
+        jvm.registerNative("java/util/HashMap", "getOrDefault", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", func(args, thread, jvm) {
+            k = jvmKeyStr(args[1]); d = args[0]["__fields__"].get("__data__");
+            return d.contains(k) ? d.get(k) : args[2];
+        });
+        jvm.registerNative("java/util/HashMap", "putIfAbsent", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", func(args, thread, jvm) {
+            k = jvmKeyStr(args[1]); d = args[0]["__fields__"].get("__data__");
+            if (d.contains(k)) { return d.get(k); }
+            d.set(k, args[2]); return null;
+        });
+        jvm.registerNative("java/util/HashMap", "replace", "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;", func(args, thread, jvm) {
+            k = jvmKeyStr(args[1]); d = args[0]["__fields__"].get("__data__");
+            old = d.contains(k) ? d.get(k) : null;
+            if (old != null) { d.set(k, args[2]); }
+            return old;
+        });
+
+        jvm.registerNative("java/util/HashMap", "iterator", "()Ljava/util/Iterator;", func(args, thread, jvm) {
+            d = args[0]["__fields__"].get("__data__"); keys = d.keys();
+            items = list(); for (i=0; i<len(keys); i++) { items.push(d.get(keys[i])); }
+            itObj = newJavaObject(jvm.classMgr.loadClass("java/util/Iterator"));
+            itObj["__fields__"].set("__items__", items); itObj["__fields__"].set("__idx__", 0); return itObj;
+        });
+
+}

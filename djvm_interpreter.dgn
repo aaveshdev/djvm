@@ -1,0 +1,589 @@
+// DJVM: bytecode interpreter - the executeInstruction opcode dispatch loop (continues DragonJVM from djvm_core.dgn)
+func executeInstruction(thread) {
+        if (len(thread.callStack) > 500) {
+            this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/StackOverflowError")), thread); return;
+        }
+        frame = thread.callStack[len(thread.callStack) - 1];
+        if (frame.pc >= len(frame.code)) { thread.callStack.pop(); return; }
+        cp = frame.classObj["cp"]; op = frame.code[frame.pc++];
+        
+        switch (op) {
+            case 0:   { }
+            case 1:   { thread.opStack.push(null); }
+            case 2:   { thread.opStack.push(-1); }
+            case 3:   { thread.opStack.push(0); }
+            case 4:   { thread.opStack.push(1); }
+            case 5:   { thread.opStack.push(2); }
+            case 6:   { thread.opStack.push(3); }
+            case 7:   { thread.opStack.push(4); }
+            case 8:   { thread.opStack.push(5); }
+            case 9:   { thread.opStack.push(0); }
+            case 10:  { thread.opStack.push(1); }
+            case 11:  { thread.opStack.push(0.0); }
+            case 12:  { thread.opStack.push(1.0); }
+            case 13:  { thread.opStack.push(2.0); }
+            case 14:  { thread.opStack.push(0.0); }
+            case 15:  { thread.opStack.push(1.0); }
+            case 16:  { val = frame.code[frame.pc++]; thread.opStack.push(val > 127 ? val - 256 : val); }
+            case 17:  { 
+                b1 = frame.code[frame.pc++]; b2 = frame.code[frame.pc++];
+                val = (b1 << 8) | b2; thread.opStack.push(val > 32767 ? val - 65536 : val);
+            }
+            
+            case 18:  { 
+                idx = frame.code[frame.pc++]; val = resolveCPforLDC(cp, idx);
+                if (typeof(val) == "string") { val = newJavaString(val, this.classMgr); }
+                else if (typeof(val) == "hashmap" and val.contains("__is_class_ref__")) { val = newJavaClassObj(val["name"], this.classMgr); }
+                thread.opStack.push(val); 
+            }
+            case 19:  { 
+                idx = (frame.code[frame.pc++] << 8) | frame.code[frame.pc++];
+                val = resolveCPforLDC(cp, idx);
+                if (typeof(val) == "string") { val = newJavaString(val, this.classMgr); }
+                else if (typeof(val) == "hashmap" and val.contains("__is_class_ref__")) { val = newJavaClassObj(val["name"], this.classMgr); }
+                thread.opStack.push(val);
+            }
+            case 20:  { 
+                idx = (frame.code[frame.pc++] << 8) | frame.code[frame.pc++];
+                thread.opStack.push(resolveCP(cp, idx));
+            }
+
+            case 21:  { idx = frame.code[frame.pc++]; thread.opStack.push(frame.locals[idx]); } 
+            case 22:  { idx = frame.code[frame.pc++]; thread.opStack.push(frame.locals[idx]); } 
+            case 23:  { idx = frame.code[frame.pc++]; thread.opStack.push(frame.locals[idx]); } 
+            case 24:  { idx = frame.code[frame.pc++]; thread.opStack.push(frame.locals[idx]); } 
+            case 25:  { idx = frame.code[frame.pc++]; thread.opStack.push(frame.locals[idx]); } 
+
+            case 26:  { thread.opStack.push(frame.locals[0]); }
+            case 27:  { thread.opStack.push(frame.locals[1]); }
+            case 28:  { thread.opStack.push(frame.locals[2]); }
+            case 29:  { thread.opStack.push(frame.locals[3]); }
+            case 30:  { thread.opStack.push(frame.locals[0]); }
+            case 31:  { thread.opStack.push(frame.locals[1]); }
+            case 32:  { thread.opStack.push(frame.locals[2]); }
+            case 33:  { thread.opStack.push(frame.locals[3]); }
+            case 34:  { thread.opStack.push(frame.locals[0]); }
+            case 35:  { thread.opStack.push(frame.locals[1]); }
+            case 36:  { thread.opStack.push(frame.locals[2]); }
+            case 37:  { thread.opStack.push(frame.locals[3]); }
+            case 38:  { thread.opStack.push(frame.locals[0]); }
+            case 39:  { thread.opStack.push(frame.locals[1]); }
+            case 40:  { thread.opStack.push(frame.locals[2]); }
+            case 41:  { thread.opStack.push(frame.locals[3]); }
+            case 42:  { thread.opStack.push(frame.locals[0]); }
+            case 43:  { thread.opStack.push(frame.locals[1]); }
+            case 44:  { thread.opStack.push(frame.locals[2]); }
+            case 45:  { thread.opStack.push(frame.locals[3]); }
+            
+            case 46:  { idx = thread.opStack.pop(); arrObj = thread.opStack.pop(); if (arrObj == null) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")), thread); return; } if (idx < 0 or idx >= len(arrObj["__array__"])) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/ArrayIndexOutOfBoundsException")), thread); return; } thread.opStack.push(arrObj["__array__"][idx]); }
+            case 47:  { idx = thread.opStack.pop(); arrObj = thread.opStack.pop(); if (arrObj == null) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")), thread); return; } if (idx < 0 or idx >= len(arrObj["__array__"])) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/ArrayIndexOutOfBoundsException")), thread); return; } thread.opStack.push(arrObj["__array__"][idx]); }
+            case 48:  { idx = thread.opStack.pop(); arrObj = thread.opStack.pop(); if (arrObj == null) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")), thread); return; } if (idx < 0 or idx >= len(arrObj["__array__"])) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/ArrayIndexOutOfBoundsException")), thread); return; } thread.opStack.push(arrObj["__array__"][idx]); }
+            case 49:  { idx = thread.opStack.pop(); arrObj = thread.opStack.pop(); if (arrObj == null) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")), thread); return; } if (idx < 0 or idx >= len(arrObj["__array__"])) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/ArrayIndexOutOfBoundsException")), thread); return; } thread.opStack.push(arrObj["__array__"][idx]); }
+            case 50:  { idx = thread.opStack.pop(); arrObj = thread.opStack.pop(); if (arrObj == null) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")), thread); return; } if (idx < 0 or idx >= len(arrObj["__array__"])) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/ArrayIndexOutOfBoundsException")), thread); return; } thread.opStack.push(arrObj["__array__"][idx]); }
+            case 51:  { idx = thread.opStack.pop(); arrObj = thread.opStack.pop(); if (arrObj == null) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")), thread); return; } if (idx < 0 or idx >= len(arrObj["__array__"])) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/ArrayIndexOutOfBoundsException")), thread); return; } thread.opStack.push(arrObj["__array__"][idx]); }
+            case 52:  { idx = thread.opStack.pop(); arrObj = thread.opStack.pop(); if (arrObj == null) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")), thread); return; } if (idx < 0 or idx >= len(arrObj["__array__"])) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/ArrayIndexOutOfBoundsException")), thread); return; } thread.opStack.push(arrObj["__array__"][idx]); }
+            case 53:  { idx = thread.opStack.pop(); arrObj = thread.opStack.pop(); if (arrObj == null) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")), thread); return; } if (idx < 0 or idx >= len(arrObj["__array__"])) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/ArrayIndexOutOfBoundsException")), thread); return; } thread.opStack.push(arrObj["__array__"][idx]); }
+
+            case 54:  { idx = frame.code[frame.pc++]; frame.locals[idx] = thread.opStack.pop(); } 
+            case 55:  { idx = frame.code[frame.pc++]; frame.locals[idx] = thread.opStack.pop(); } 
+            case 56:  { idx = frame.code[frame.pc++]; frame.locals[idx] = thread.opStack.pop(); } 
+            case 57:  { idx = frame.code[frame.pc++]; frame.locals[idx] = thread.opStack.pop(); } 
+            case 58:  { idx = frame.code[frame.pc++]; frame.locals[idx] = thread.opStack.pop(); } 
+
+            case 59:  { frame.locals[0] = thread.opStack.pop(); }
+            case 60:  { frame.locals[1] = thread.opStack.pop(); }
+            case 61:  { frame.locals[2] = thread.opStack.pop(); }
+            case 62:  { frame.locals[3] = thread.opStack.pop(); }
+            case 63:  { frame.locals[0] = thread.opStack.pop(); }
+            case 64:  { frame.locals[1] = thread.opStack.pop(); }
+            case 65:  { frame.locals[2] = thread.opStack.pop(); }
+            case 66:  { frame.locals[3] = thread.opStack.pop(); }
+            case 67:  { frame.locals[0] = thread.opStack.pop(); }
+            case 68:  { frame.locals[1] = thread.opStack.pop(); }
+            case 69:  { frame.locals[2] = thread.opStack.pop(); }
+            case 70:  { frame.locals[3] = thread.opStack.pop(); }
+            case 71:  { frame.locals[0] = thread.opStack.pop(); }
+            case 72:  { frame.locals[1] = thread.opStack.pop(); }
+            case 73:  { frame.locals[2] = thread.opStack.pop(); }
+            case 74:  { frame.locals[3] = thread.opStack.pop(); }
+            case 75:  { frame.locals[0] = thread.opStack.pop(); }
+            case 76:  { frame.locals[1] = thread.opStack.pop(); }
+            case 77:  { frame.locals[2] = thread.opStack.pop(); }
+            case 78:  { frame.locals[3] = thread.opStack.pop(); }
+            
+            case 79:  { val = thread.opStack.pop(); idx = thread.opStack.pop(); arrObj = thread.opStack.pop(); if (arrObj == null) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")), thread); return; } if (idx < 0 or idx >= len(arrObj["__array__"])) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/ArrayIndexOutOfBoundsException")), thread); return; } arrObj["__array__"][idx] = val; }
+            case 80:  { val = thread.opStack.pop(); idx = thread.opStack.pop(); arrObj = thread.opStack.pop(); if (arrObj == null) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")), thread); return; } if (idx < 0 or idx >= len(arrObj["__array__"])) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/ArrayIndexOutOfBoundsException")), thread); return; } arrObj["__array__"][idx] = val; }
+            case 81:  { val = thread.opStack.pop(); idx = thread.opStack.pop(); arrObj = thread.opStack.pop(); if (arrObj == null) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")), thread); return; } if (idx < 0 or idx >= len(arrObj["__array__"])) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/ArrayIndexOutOfBoundsException")), thread); return; } arrObj["__array__"][idx] = val; }
+            case 82:  { val = thread.opStack.pop(); idx = thread.opStack.pop(); arrObj = thread.opStack.pop(); if (arrObj == null) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")), thread); return; } if (idx < 0 or idx >= len(arrObj["__array__"])) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/ArrayIndexOutOfBoundsException")), thread); return; } arrObj["__array__"][idx] = val; }
+            case 83:  { val = thread.opStack.pop(); idx = thread.opStack.pop(); arrObj = thread.opStack.pop(); if (arrObj == null) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")), thread); return; } if (idx < 0 or idx >= len(arrObj["__array__"])) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/ArrayIndexOutOfBoundsException")), thread); return; } arrObj["__array__"][idx] = val; }
+            case 84:  { val = thread.opStack.pop(); idx = thread.opStack.pop(); arrObj = thread.opStack.pop(); if (arrObj == null) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")), thread); return; } if (idx < 0 or idx >= len(arrObj["__array__"])) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/ArrayIndexOutOfBoundsException")), thread); return; } arrObj["__array__"][idx] = val; }
+            case 85:  { val = thread.opStack.pop(); idx = thread.opStack.pop(); arrObj = thread.opStack.pop(); if (arrObj == null) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")), thread); return; } if (idx < 0 or idx >= len(arrObj["__array__"])) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/ArrayIndexOutOfBoundsException")), thread); return; } arrObj["__array__"][idx] = val; }
+            case 86:  { val = thread.opStack.pop(); idx = thread.opStack.pop(); arrObj = thread.opStack.pop(); if (arrObj == null) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")), thread); return; } if (idx < 0 or idx >= len(arrObj["__array__"])) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/ArrayIndexOutOfBoundsException")), thread); return; } arrObj["__array__"][idx] = val; }
+
+            case 87:  { thread.opStack.pop(); } 
+            case 88:  { thread.opStack.pop(); thread.opStack.pop(); } 
+            case 89:  { val = thread.opStack.pop(); thread.opStack.push(val); thread.opStack.push(val); } 
+            case 90:  { v1 = thread.opStack.pop(); v2 = thread.opStack.pop(); thread.opStack.push(v1); thread.opStack.push(v2); thread.opStack.push(v1); } 
+            case 91:  { v1 = thread.opStack.pop(); v2 = thread.opStack.pop(); v3 = thread.opStack.pop(); thread.opStack.push(v1); thread.opStack.push(v3); thread.opStack.push(v2); thread.opStack.push(v1); } 
+            case 92:  { v1 = thread.opStack.pop(); v2 = thread.opStack.pop(); thread.opStack.push(v2); thread.opStack.push(v1); thread.opStack.push(v2); thread.opStack.push(v1); } 
+            case 93:  { v1 = thread.opStack.pop(); v2 = thread.opStack.pop(); v3 = thread.opStack.pop(); thread.opStack.push(v2); thread.opStack.push(v1); thread.opStack.push(v3); thread.opStack.push(v2); thread.opStack.push(v1); } 
+            case 94:  { v1 = thread.opStack.pop(); v2 = thread.opStack.pop(); v3 = thread.opStack.pop(); v4 = thread.opStack.pop(); thread.opStack.push(v2); thread.opStack.push(v1); thread.opStack.push(v4); thread.opStack.push(v3); thread.opStack.push(v2); thread.opStack.push(v1); } 
+            case 95:  { v1 = thread.opStack.pop(); v2 = thread.opStack.pop(); thread.opStack.push(v1); thread.opStack.push(v2); } 
+
+            case 96:  { b = thread.opStack.pop(); a = thread.opStack.pop(); r = int(a) + int(b); r = r & 4294967295; if (r >= 2147483648) { r = r - 4294967296; } thread.opStack.push(r); }
+            case 97:  { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a + b); }
+            case 98:  { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a + b); }
+            case 99:  { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a + b); }
+            case 100: { b = thread.opStack.pop(); a = thread.opStack.pop(); r = int(a) - int(b); r = r & 4294967295; if (r >= 2147483648) { r = r - 4294967296; } thread.opStack.push(r); }
+            case 101: { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a - b); }
+            case 102: { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a - b); }
+            case 103: { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a - b); }
+            case 104: { b = thread.opStack.pop(); a = thread.opStack.pop(); r = int(a) * int(b); r = r & 4294967295; if (r >= 2147483648) { r = r - 4294967296; } thread.opStack.push(r); }
+            case 105: { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a * b); }
+            case 106: { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a * b); }
+            case 107: { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a * b); }
+            case 108: { b = thread.opStack.pop(); a = thread.opStack.pop(); if (int(b) == 0) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/ArithmeticException")), thread); return; } r = int(a / b); thread.opStack.push(r); }
+            case 109: { b = thread.opStack.pop(); a = thread.opStack.pop(); if (int(b) == 0) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/ArithmeticException")), thread); return; } thread.opStack.push(int(a / b)); }
+            case 110: { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a / b); }
+            case 111: { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a / b); }
+            case 112: { b = thread.opStack.pop(); a = thread.opStack.pop(); if (int(b) == 0) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/ArithmeticException")), thread); return; } thread.opStack.push(int(a) % int(b)); }
+            case 113: { b = thread.opStack.pop(); a = thread.opStack.pop(); if (int(b) == 0) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/ArithmeticException")), thread); return; } thread.opStack.push(a % b); }
+            case 114: { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a % b); }
+            case 115: { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a % b); }
+            case 116: { v = int(thread.opStack.pop()); r = -v; r = r & 4294967295; if (r >= 2147483648) { r = r - 4294967296; } thread.opStack.push(r); }
+            case 117: { thread.opStack.push(-thread.opStack.pop()); }
+            case 118: { thread.opStack.push(-thread.opStack.pop()); }
+            case 119: { thread.opStack.push(-thread.opStack.pop()); }
+            
+            case 120: { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a << b); } 
+            case 121: { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a << b); } 
+            case 122: { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a >> b); } 
+            case 123: { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a >> b); } 
+            case 124: { b = thread.opStack.pop(); a = thread.opStack.pop(); ua = a < 0 ? a + 4294967296 : a; thread.opStack.push(int(ua) >> (b & 31)); } // iushr
+            case 125: { b = thread.opStack.pop(); a = thread.opStack.pop(); ua = a < 0 ? a + 4294967296 : a; thread.opStack.push(int(ua) >> (b & 63)); } // lushr
+            case 126: { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a & b); } 
+            case 127: { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a & b); } 
+            case 128: { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a | b); } 
+            case 129: { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a | b); } 
+            case 130: { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a ^ b); } 
+            case 131: { b = thread.opStack.pop(); a = thread.opStack.pop(); thread.opStack.push(a ^ b); } 
+
+            case 132: { 
+                idx = frame.code[frame.pc++]; c = frame.code[frame.pc++]; 
+                if (c > 127) { c = c - 256; } 
+                r = int(frame.locals[idx]) + c; r = r & 4294967295; if (r >= 2147483648) { r = r - 4294967296; }
+                frame.locals[idx] = r; 
+            }
+
+            case 133: { } // i2l  - no-op (int already fits)
+            case 134: { } // i2f  - no-op
+            case 135: { } // i2d  - no-op
+            case 136: { v = thread.opStack.pop(); thread.opStack.push(int(v) & 4294967295); if (thread.opStack[len(thread.opStack)-1] >= 2147483648) { thread.opStack[len(thread.opStack)-1] = thread.opStack[len(thread.opStack)-1] - 4294967296; } } // l2i
+            case 137: { } // l2f  - no-op
+            case 138: { } // l2d  - no-op
+            case 139: { v = thread.opStack.pop(); thread.opStack.push(int(v)); } // f2i
+            case 140: { } // f2l  - no-op
+            case 141: { } // f2d  - no-op
+            case 142: { v = thread.opStack.pop(); thread.opStack.push(int(v)); } // d2i
+            case 143: { } // d2l  - no-op
+            case 144: { } // d2f  - no-op
+            case 145: { v = int(thread.opStack.pop()) & 255; if (v >= 128) { v = v - 256; } thread.opStack.push(v); } // i2b
+            case 146: { thread.opStack.push(int(thread.opStack.pop()) & 65535); } // i2c
+            case 147: { v = int(thread.opStack.pop()) & 65535; if (v >= 32768) { v = v - 65536; } thread.opStack.push(v); } // i2s
+            
+            case 148: { v2 = thread.opStack.pop(); v1 = thread.opStack.pop(); thread.opStack.push(v1 > v2 ? 1 : (v1 < v2 ? -1 : 0)); } 
+            case 149: { v2 = thread.opStack.pop(); v1 = thread.opStack.pop(); thread.opStack.push(v1 > v2 ? 1 : (v1 < v2 ? -1 : 0)); } 
+            case 150: { v2 = thread.opStack.pop(); v1 = thread.opStack.pop(); thread.opStack.push(v1 > v2 ? 1 : (v1 < v2 ? -1 : 0)); } 
+            case 151: { v2 = thread.opStack.pop(); v1 = thread.opStack.pop(); thread.opStack.push(v1 > v2 ? 1 : (v1 < v2 ? -1 : 0)); } 
+            case 152: { v2 = thread.opStack.pop(); v1 = thread.opStack.pop(); thread.opStack.push(v1 > v2 ? 1 : (v1 < v2 ? -1 : 0)); } 
+
+            case 153: { 
+                b1 = frame.code[frame.pc++]; b2 = frame.code[frame.pc++];
+                offset = (b1 << 8) | b2; if (offset > 32767) { offset = offset - 65536; }
+                val = thread.opStack.pop(); if (val == 0) { frame.pc = (frame.pc - 3) + offset; }
+            }
+            case 154: { 
+                b1 = frame.code[frame.pc++]; b2 = frame.code[frame.pc++];
+                offset = (b1 << 8) | b2; if (offset > 32767) { offset = offset - 65536; }
+                val = thread.opStack.pop(); if (val != 0) { frame.pc = (frame.pc - 3) + offset; }
+            }
+            case 155: { 
+                b1 = frame.code[frame.pc++]; b2 = frame.code[frame.pc++];
+                offset = (b1 << 8) | b2; if (offset > 32767) { offset = offset - 65536; }
+                val = thread.opStack.pop(); if (val < 0) { frame.pc = (frame.pc - 3) + offset; }
+            }
+            case 156: { 
+                b1 = frame.code[frame.pc++]; b2 = frame.code[frame.pc++];
+                offset = (b1 << 8) | b2; if (offset > 32767) { offset = offset - 65536; }
+                val = thread.opStack.pop(); if (val >= 0) { frame.pc = (frame.pc - 3) + offset; }
+            }
+            case 157: { 
+                b1 = frame.code[frame.pc++]; b2 = frame.code[frame.pc++];
+                offset = (b1 << 8) | b2; if (offset > 32767) { offset = offset - 65536; }
+                val = thread.opStack.pop(); if (val > 0) { frame.pc = (frame.pc - 3) + offset; }
+            }
+            case 158: { 
+                b1 = frame.code[frame.pc++]; b2 = frame.code[frame.pc++];
+                offset = (b1 << 8) | b2; if (offset > 32767) { offset = offset - 65536; }
+                val = thread.opStack.pop(); if (val <= 0) { frame.pc = (frame.pc - 3) + offset; }
+            }
+            case 159: { 
+                b1 = frame.code[frame.pc++]; b2 = frame.code[frame.pc++];
+                offset = (b1 << 8) | b2; if (offset > 32767) { offset = offset - 65536; }
+                val2 = thread.opStack.pop(); val1 = thread.opStack.pop();
+                if (val1 == val2) { frame.pc = (frame.pc - 3) + offset; }
+            }
+            case 160: { 
+                b1 = frame.code[frame.pc++]; b2 = frame.code[frame.pc++];
+                offset = (b1 << 8) | b2; if (offset > 32767) { offset = offset - 65536; }
+                val2 = thread.opStack.pop(); val1 = thread.opStack.pop();
+                if (val1 != val2) { frame.pc = (frame.pc - 3) + offset; }
+            }
+            case 161: { 
+                b1 = frame.code[frame.pc++]; b2 = frame.code[frame.pc++];
+                offset = (b1 << 8) | b2; if (offset > 32767) { offset = offset - 65536; }
+                val2 = thread.opStack.pop(); val1 = thread.opStack.pop();
+                if (val1 < val2) { frame.pc = (frame.pc - 3) + offset; }
+            }
+            case 162: { 
+                b1 = frame.code[frame.pc++]; b2 = frame.code[frame.pc++];
+                offset = (b1 << 8) | b2; if (offset > 32767) { offset = offset - 65536; }
+                val2 = thread.opStack.pop(); val1 = thread.opStack.pop();
+                if (val1 >= val2) { frame.pc = (frame.pc - 3) + offset; }
+            }
+            case 163: { 
+                b1 = frame.code[frame.pc++]; b2 = frame.code[frame.pc++];
+                offset = (b1 << 8) | b2; if (offset > 32767) { offset = offset - 65536; }
+                val2 = thread.opStack.pop(); val1 = thread.opStack.pop();
+                if (val1 > val2) { frame.pc = (frame.pc - 3) + offset; }
+            }
+            case 164: { 
+                b1 = frame.code[frame.pc++]; b2 = frame.code[frame.pc++];
+                offset = (b1 << 8) | b2; if (offset > 32767) { offset = offset - 65536; }
+                val2 = thread.opStack.pop(); val1 = thread.opStack.pop();
+                if (val1 <= val2) { frame.pc = (frame.pc - 3) + offset; }
+            }
+            case 165: { 
+                b1 = frame.code[frame.pc++]; b2 = frame.code[frame.pc++];
+                offset = (b1 << 8) | b2; if (offset > 32767) { offset = offset - 65536; }
+                val2 = thread.opStack.pop(); val1 = thread.opStack.pop();
+                if (val1 != null and val2 != null and val1["__id__"] == val2["__id__"]) { frame.pc = (frame.pc - 3) + offset; }
+            }
+            case 166: { 
+                b1 = frame.code[frame.pc++]; b2 = frame.code[frame.pc++];
+                offset = (b1 << 8) | b2; if (offset > 32767) { offset = offset - 65536; }
+                val2 = thread.opStack.pop(); val1 = thread.opStack.pop();
+                if (val1 != null and val2 != null and val1["__id__"] != val2["__id__"]) { frame.pc = (frame.pc - 3) + offset; }
+            }
+            case 167: { 
+                b1 = frame.code[frame.pc++]; b2 = frame.code[frame.pc++];
+                offset = (b1 << 8) | b2; if (offset > 32767) { offset = offset - 65536; }
+                frame.pc = (frame.pc - 3) + offset;
+            }
+
+            case 168: { 
+                b1 = frame.code[frame.pc++]; b2 = frame.code[frame.pc++];
+                offset = (b1 << 8) | b2; if (offset > 32767) { offset = offset - 65536; }
+                thread.opStack.push(frame.pc); 
+                frame.pc = (frame.pc - 3) + offset;
+            }
+            case 169: { 
+                idx = frame.code[frame.pc++]; 
+                frame.pc = frame.locals[idx]; 
+            }
+
+            case 170: { 
+                pcOffset = frame.pc - 1;
+                rem = frame.pc % 4; if (rem != 0) { frame.pc = frame.pc + (4 - rem); }
+                defaultOffset = readS4(frame.code, frame.pc); frame.pc = frame.pc + 4;
+                low = readS4(frame.code, frame.pc); frame.pc = frame.pc + 4;
+                high = readS4(frame.code, frame.pc); frame.pc = frame.pc + 4;
+                idx = thread.opStack.pop();
+                targetOffset = defaultOffset;
+                if (idx >= low and idx <= high) {
+                    jmpPc = frame.pc + ((idx - low) * 4);
+                    targetOffset = readS4(frame.code, jmpPc);
+                }
+                frame.pc = pcOffset + targetOffset;
+            }
+            case 171: { 
+                pcOffset = frame.pc - 1;
+                rem = frame.pc % 4; if (rem != 0) { frame.pc = frame.pc + (4 - rem); }
+                defaultOffset = readS4(frame.code, frame.pc); frame.pc = frame.pc + 4;
+                npairs = readS4(frame.code, frame.pc); frame.pc = frame.pc + 4;
+                key = thread.opStack.pop();
+                targetOffset = defaultOffset;
+                for(i=0; i<npairs; i++) {
+                    match = readS4(frame.code, frame.pc); frame.pc = frame.pc + 4;
+                    matchOffset = readS4(frame.code, frame.pc); frame.pc = frame.pc + 4;
+                    if (key == match) { targetOffset = matchOffset; break; }
+                }
+                frame.pc = pcOffset + targetOffset;
+            }
+
+            case 172: { ret = thread.opStack.pop(); thread.callStack.pop(); if (len(thread.callStack) > 0) { thread.opStack.push(ret); } }
+            case 173: { ret = thread.opStack.pop(); thread.callStack.pop(); if (len(thread.callStack) > 0) { thread.opStack.push(ret); } }
+            case 174: { ret = thread.opStack.pop(); thread.callStack.pop(); if (len(thread.callStack) > 0) { thread.opStack.push(ret); } }
+            case 175: { ret = thread.opStack.pop(); thread.callStack.pop(); if (len(thread.callStack) > 0) { thread.opStack.push(ret); } }
+            case 176: { ret = thread.opStack.pop(); thread.callStack.pop(); if (len(thread.callStack) > 0) { thread.opStack.push(ret); } }
+            case 177: { thread.callStack.pop(); } 
+
+            case 178: { 
+                idx = (frame.code[frame.pc++] << 8) | frame.code[frame.pc++];
+                mem = resolveMember(cp, idx); 
+                if (mem == null) { raise "NoSuchFieldError"; }
+                targetCls = this.classMgr.loadClass(mem["class"]);
+                if (targetCls == null) { raise "NoClassDefFoundError"; }
+                if (this.initClassIfNeeded(targetCls, thread)) { frame.pc = frame.pc - 3; return; }
+                sfVal = null; sfFound = False; sfCls = targetCls;
+                while (sfCls != null) {
+               
+                   if (not (sfCls["static_fields"] == null) and typeof(sfCls["static_fields"]) == "map") {
+                        if (sfCls["static_fields"].contains(mem["name"])) { 
+                            sfVal = sfCls["static_fields"][mem["name"]]; 
+                            sfFound = True; 
+                            break; 
+                        }
+                    }
+                    sfCls = sfCls["super_class"] != null ? this.classMgr.loadClass(sfCls["super_class"]) : null;
+                }
+                thread.opStack.push(sfVal);
+            }
+            case 179: { 
+                idx = (frame.code[frame.pc++] << 8) | frame.code[frame.pc++];
+                mem = resolveMember(cp, idx); val = thread.opStack.pop();
+                if (mem == null) { raise "NoSuchFieldError"; }
+                targetCls = this.classMgr.loadClass(mem["class"]);
+                if (targetCls == null) { raise "NoClassDefFoundError"; }
+                if (this.initClassIfNeeded(targetCls, thread)) { thread.opStack.push(val); frame.pc = frame.pc - 3; return; }
+                sf = targetCls["static_fields"]; sf.set(mem["name"], val);
+            }
+            case 180: { 
+                idx = (frame.code[frame.pc++] << 8) | frame.code[frame.pc++];
+                mem = resolveMember(cp, idx); obj = thread.opStack.pop();
+                if (obj == null) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")), thread); return; }
+                thread.opStack.push(obj["__fields__"].get(mem["name"]));
+            }
+            case 181: { 
+                idx = (frame.code[frame.pc++] << 8) | frame.code[frame.pc++];
+                mem = resolveMember(cp, idx); val = thread.opStack.pop(); obj = thread.opStack.pop();
+                if (obj == null) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")), thread); return; }
+                fields = obj["__fields__"]; fields.set(mem["name"], val);
+            }
+            
+            case 187: { 
+                idx = (frame.code[frame.pc++] << 8) | frame.code[frame.pc++];
+                className = resolveCP(cp, idx); clsDef = this.classMgr.loadClass(className);
+                if (clsDef == null) { raise "NoClassDefFoundError"; }
+                if (this.initClassIfNeeded(clsDef, thread)) { frame.pc = frame.pc - 3; return; }
+                thread.opStack.push(newJavaObject(clsDef)); 
+            }
+            case 192: { 
+                idx = (frame.code[frame.pc++] << 8) | frame.code[frame.pc++];
+                className = resolveCP(cp, idx); objRef = thread.opStack.pop();
+                if (objRef != null) { 
+                    if (this.classMgr.isSubclass(objRef["__class__"], className) == False) { 
+                        this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/ClassCastException")), thread); return; 
+                    } 
+                }
+                thread.opStack.push(objRef);
+            }
+            case 193: { 
+                idx = (frame.code[frame.pc++] << 8) | frame.code[frame.pc++];
+                className = resolveCP(cp, idx); objRef = thread.opStack.pop();
+                if (objRef == null) { thread.opStack.push(0); } else { thread.opStack.push(this.classMgr.isSubclass(objRef["__class__"], className) ? 1 : 0); }
+            }
+
+            case 182: { 
+                idx = (frame.code[frame.pc++] << 8) | frame.code[frame.pc++];
+                mem = resolveMember(cp, idx); if (mem == null) { raise "NoSuchMethodError"; }
+                this.invokeVirtual(mem["class"], mem["name"], mem["desc"], thread);
+            }
+            case 183: { 
+                idx = (frame.code[frame.pc++] << 8) | frame.code[frame.pc++];
+                mem = resolveMember(cp, idx); if (mem == null) { raise "NoSuchMethodError"; }
+                if (this.invokeStatic(mem["class"], mem["name"], mem["desc"], thread)) { frame.pc = frame.pc - 3; return; }
+            }
+            case 184: { 
+                idx = (frame.code[frame.pc++] << 8) | frame.code[frame.pc++];
+                mem = resolveMember(cp, idx); if (mem == null) { raise "NoSuchMethodError"; }
+                if (this.invokeStatic(mem["class"], mem["name"], mem["desc"], thread)) { frame.pc = frame.pc - 3; return; }
+            }
+            case 185: { 
+                idx = (frame.code[frame.pc++] << 8) | frame.code[frame.pc++]; frame.pc++; frame.pc++; 
+                mem = resolveMember(cp, idx); if (mem == null) { raise "NoSuchMethodError"; }
+                this.invokeVirtual(mem["class"], mem["name"], mem["desc"], thread);
+            }
+
+            case 191: { 
+                exceptionObj = thread.opStack.pop();
+                if (exceptionObj == null) { exceptionObj = newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")); }
+                this.handleException(exceptionObj, thread);
+            }
+            
+            case 194: { 
+                obj = thread.opStack.pop();
+                if (obj == null) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")), thread); return; }
+                
+                if (obj["__monitor_owner__"] == -1 or obj["__monitor_owner__"] == thread.tid) {
+                    obj["__monitor_owner__"] = thread.tid;
+                    obj["__monitor_count__"] = obj["__monitor_count__"] + 1;
+                } else {
+                    frame.pc--; 
+                    thread.opStack.push(obj); 
+                    thread.state = "BLOCKED"; 
+                }
+            }
+            case 195: { 
+                obj = thread.opStack.pop();
+                if (obj == null) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")), thread); return; }
+
+                if (obj["__monitor_owner__"] == thread.tid) {
+                    obj["__monitor_count__"] = obj["__monitor_count__"] - 1;
+                    if (obj["__monitor_count__"] == 0) { 
+                        obj["__monitor_owner__"] = -1; 
+                        for (t=0; t<len(this.threads); t++) { if (this.threads[t].state == "BLOCKED") { this.threads[t].state = "RUNNING"; } }
+                    } 
+                } else {
+                    this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/IllegalMonitorStateException")), thread);
+                }
+            }
+
+            case 188: { 
+                frame.pc++; count = thread.opStack.pop();
+                arrObj = hashmap(); arrObj.set("__type__", "array"); arrObj.set("__class__", "[I"); arrObj.set("__id__", allocateHeap(arrObj));
+                arr = list(); for(i=0; i<count; i++) { arr.push(0); }
+                arrObj.set("__array__", arr);
+                thread.opStack.push(arrObj);
+            }
+            case 189: { 
+                idx = (frame.code[frame.pc++] << 8) | frame.code[frame.pc++];
+                count = thread.opStack.pop();
+                arrObj = hashmap(); arrObj.set("__type__", "array"); arrObj.set("__class__", "[Ljava/lang/Object;"); arrObj.set("__id__", allocateHeap(arrObj));
+                arr = list(); for(i=0; i<count; i++) { arr.push(null); }
+                arrObj.set("__array__", arr);
+                thread.opStack.push(arrObj);
+            }
+            case 190: { 
+                arrObj = thread.opStack.pop(); 
+                if (arrObj == null) { this.handleException(newJavaObject(this.classMgr.loadClass("java/lang/NullPointerException")), thread); return; }
+                thread.opStack.push(len(arrObj["__array__"])); 
+            } 
+            case 197: { 
+                idx = (frame.code[frame.pc++] << 8) | frame.code[frame.pc++];
+                dims = frame.code[frame.pc++];
+                dimSizes = list(); for (d=0; d<dims; d++) { dimSizes.push(thread.opStack.pop()); }
+                revSizes = list(); for (d=dims-1; d>=0; d--) { revSizes.push(dimSizes[d]); }
+                func buildArray(sizes, depth) {
+                    sz = sizes[depth]; arrObj = hashmap();
+                    arrObj.set("__type__", "array"); arrObj.set("__class__", "[[Object;"); arrObj.set("__id__", allocateHeap(arrObj));
+                    arr = list();
+                    if (depth + 1 < len(sizes)) {
+                        for (ai=0; ai<sz; ai++) { arr.push(buildArray(sizes, depth + 1)); }
+                    } else {
+                        for (ai=0; ai<sz; ai++) { arr.push(null); }
+                    }
+                    arrObj.set("__array__", arr); return arrObj;
+                }
+                thread.opStack.push(buildArray(revSizes, 0));
+            }
+
+            case 198: { 
+                b1 = frame.code[frame.pc++]; b2 = frame.code[frame.pc++];
+                offset = (b1 << 8) | b2; if (offset > 32767) { offset = offset - 65536; }
+                val = thread.opStack.pop(); if (val == null) { frame.pc = (frame.pc - 3) + offset; }
+            }
+            case 199: { 
+                b1 = frame.code[frame.pc++]; b2 = frame.code[frame.pc++];
+                offset = (b1 << 8) | b2; if (offset > 32767) { offset = offset - 65536; }
+                val = thread.opStack.pop(); if (val != null) { frame.pc = (frame.pc - 3) + offset; }
+            }
+            case 200: { 
+                offset = readS4(frame.code, frame.pc); frame.pc = frame.pc + 4;
+                frame.pc = (frame.pc - 5) + offset;
+            }
+            case 201: { 
+                offset = readS4(frame.code, frame.pc); frame.pc = frame.pc + 4;
+                thread.opStack.push(frame.pc); 
+                frame.pc = (frame.pc - 5) + offset;
+            }
+            
+            case 196: {
+                wop = frame.code[frame.pc++];
+                widx = (frame.code[frame.pc++] << 8) | frame.code[frame.pc++];
+                if (wop == 21 or wop == 22 or wop == 23 or wop == 24 or wop == 25) {
+                    thread.opStack.push(frame.locals[widx]);
+                } else if (wop == 54 or wop == 55 or wop == 56 or wop == 57 or wop == 58) {
+                    frame.locals[widx] = thread.opStack.pop();
+                } else if (wop == 132) {
+                    c = (frame.code[frame.pc++] << 8) | frame.code[frame.pc++];
+                    if (c > 32767) { c = c - 65536; }
+                    frame.locals[widx] = frame.locals[widx] + c;
+                } else if (wop == 169) {
+                    frame.pc = frame.locals[widx];
+                }
+            }
+
+            case 186: {
+                idx = (frame.code[frame.pc++] << 8) | frame.code[frame.pc++];
+                frame.pc++; frame.pc++; // two reserved zero bytes
+                ref = cp[idx];
+                if (ref != null and ref.contains("nat_idx")) {
+                    natRef = cp[ref["nat_idx"]];
+                    indyName = cp[natRef["name_idx"]]["val"];
+                    indyDesc = cp[natRef["desc_idx"]]["val"];
+                    argCount = getArgCount(indyDesc);
+                    if (indyName == "makeConcatWithConstants") {
+                        args = list(); for(i=0; i<argCount; i++) { args.push(thread.opStack.pop()); }
+                        result = "";
+                        for(i=len(args)-1; i>=0; i--) {
+                            a = args[i];
+                            if (a == null) { result = result + "null"; }
+                            else if (typeof(a) == "hashmap" and a.contains("__fields__") and a["__fields__"].get("value") != null) { result = result + str(a["__fields__"].get("value")); }
+                            else if (typeof(a) == "hashmap" and a.contains("__class__")) { result = result + a["__class__"] + "@" + str(a["__id__"]); }
+                            else { result = result + str(a); }
+                        }
+                        thread.opStack.push(newJavaString(result, this.classMgr));
+                    } else {
+                        capturedArgs = list();
+                        for(i=0; i<argCount; i++) { capturedArgs.push(thread.opStack.pop()); }
+                        revCaptured = list(); for(i=len(capturedArgs)-1; i>=0; i--) { revCaptured.push(capturedArgs[i]); }
+
+                        retStart = 0; di = 0;
+                        while (di < len(indyDesc) and indyDesc[di] != ")") { di++; }
+                        di++; 
+                        retDesc = indyDesc.substring(di, len(indyDesc));
+                        ifaceName = "java/lang/Object";
+                        if (retDesc.starts_with("L") and retDesc.ends_with(";")) {
+                            ifaceName = retDesc.substring(1, len(retDesc) - 1);
+                        }
+
+                        implClass = frame.classObj["name"];
+                        implMethod = null; implDesc = null;
+                        if (frame.classObj.contains("bootstrap_methods")) {
+                            bsms = frame.classObj["bootstrap_methods"];
+                            bsmIdx = ref.contains("bsm_attr_idx") ? ref["bsm_attr_idx"] : 0;
+                            if (bsmIdx < len(bsms)) {
+                                bsm = bsms[bsmIdx];
+                                implClass = bsm.contains("implClass") ? bsm["implClass"] : implClass;
+                                implMethod = bsm.contains("implMethod") ? bsm["implMethod"] : null;
+                                implDesc = bsm.contains("implDesc") ? bsm["implDesc"] : null;
+                            }
+                        }
+
+                        lambdaObj = newJavaObject(this.classMgr.loadClass(ifaceName));
+                        lambdaObj["__lambda__"] = True;
+                        lambdaObj["__lambda_iface__"] = indyName;
+                        lambdaObj["__lambda_implClass__"] = implClass;
+                        lambdaObj["__lambda_implMethod__"] = implMethod;
+                        lambdaObj["__lambda_implDesc__"] = implDesc;
+                        lambdaObj["__lambda_captured__"] = revCaptured;
+                        thread.opStack.push(lambdaObj);
+                    }
+                }
+            }
+
+            default: { showln("FATAL: Unknown Opcode " + str(op) + " at PC " + str(frame.pc - 1)); thread.state="DEAD"; }
+        }
+    }
+}

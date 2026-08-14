@@ -1,0 +1,162 @@
+// DJVM: .class file parser (constant pool, fields, methods, code attributes)
+class ClassLoaderParser {
+    data = null; pos = 0; cp = list();
+    func init(bytesData) { this.data = bytesData; this.pos = 0; }
+    func readU1() { return this.data[this.pos++]; }
+    func readU2() { b1 = this.readU1(); b2 = this.readU1(); return (b1 << 8) | b2; }
+    func readU4() { 
+        b1 = this.readU1(); b2 = this.readU1(); b3 = this.readU1(); b4 = this.readU1();
+        return (b1 << 24) | (b2 << 16) | (b3 << 8) | b4;
+    }
+    
+    func parse() {
+        magic = this.readU4(); minor = this.readU2(); major = this.readU2();
+        this.parseConstantPool();
+        accessFlags = this.readU2(); thisClass = this.readU2(); superClassIdx = this.readU2();
+        
+        className = this.cp[this.cp[thisClass]["name_idx"]]["val"];
+        superClassName = null;
+        if (superClassIdx != 0) { superClassName = this.cp[this.cp[superClassIdx]["name_idx"]]["val"]; }
+
+        ifaces = this.readInterfaces(); fields = this.readFields(); methods = this.readMethods();
+
+        bsms = list();
+        clsAttrCnt = this.readU2();
+        for (cai=0; cai<clsAttrCnt; cai++) {
+            caNameIdx = this.readU2(); caLen = this.readU4(); caName = this.getCPUtf8(caNameIdx);
+            if (caName == "BootstrapMethods") {
+                numBsm = this.readU2();
+                for (bi=0; bi<numBsm; bi++) {
+                    bsmRef = this.readU2(); numBsmArgs = this.readU2();
+                    bsm = hashmap();
+                    if (bsmRef < len(this.cp) and this.cp[bsmRef] != null) {
+                        mhEntry = this.cp[bsmRef];
+                        if (mhEntry.contains("ref_idx")) {
+                            refEntry = this.cp[mhEntry["ref_idx"]];
+                            if (refEntry != null and refEntry.contains("class_idx")) {
+                                implClsName = this.cp[this.cp[refEntry["class_idx"]]["name_idx"]]["val"];
+                                natE = this.cp[refEntry["nat_idx"]];
+                                implMName = this.cp[natE["name_idx"]]["val"];
+                                implMDesc = this.cp[natE["desc_idx"]]["val"];
+                                bsm.set("implClass", implClsName);
+                                bsm.set("implMethod", implMName);
+                                bsm.set("implDesc", implMDesc);
+                            }
+                        }
+                    }
+                    bsmArgsList = list();
+                    for (ba=0; ba<numBsmArgs; ba++) { bsmArgsList.push(this.readU2()); }
+                    bsm.set("args", bsmArgsList);
+                    bsms.push(bsm);
+                }
+            } else {
+                this.pos = this.pos + caLen;
+            }
+        }
+
+        cls = hashmap();
+        cls.set("name", className); cls.set("super_class", superClassName); 
+        cls.set("cp", this.cp); cls.set("methods", methods);
+        cls.set("fields", fields);
+        cls.set("interfaces", ifaces);
+        cls.set("bootstrap_methods", bsms);
+        cls.set("static_fields", hashmap()); 
+        cls.set("state", 0); // 0=Loaded, 1=Linked, 2=Init-ing, 3=Ready
+        return cls;
+    }
+
+    func parseConstantPool() {
+        count = this.readU2(); this.cp = list(); this.cp.push(null); i = 1;
+        while (i < count) {
+            tag = this.readU1(); entry = hashmap(); entry.set("tag", tag);
+            switch (tag) {
+                case 1: { 
+                    len2 = this.readU2(); s = "";
+                    for (k=0; k<len2; k++) { c = this.readU1(); if (c > 0) { s = s + chr(c); } }
+                    entry.set("val", s);
+                }
+                case 3: { entry.set("val", this.readU4()); } 
+                case 4: { entry.set("val", this.readU4()); } 
+                case 5: { entry.set("val", this.readU4()); this.readU4(); this.cp.push(entry); this.cp.push(null); i++; }
+                case 6: { entry.set("val", this.readU4()); this.readU4(); this.cp.push(entry); this.cp.push(null); i++; }
+                case 7: { entry.set("name_idx", this.readU2()); } 
+                case 8: { entry.set("str_idx", this.readU2()); }  
+                case 9: { entry.set("class_idx", this.readU2()); entry.set("nat_idx", this.readU2()); }
+                case 10: { entry.set("class_idx", this.readU2()); entry.set("nat_idx", this.readU2()); }
+                case 11: { entry.set("class_idx", this.readU2()); entry.set("nat_idx", this.readU2()); }
+                case 12: { entry.set("name_idx", this.readU2()); entry.set("desc_idx", this.readU2()); }
+                case 15: { entry.set("ref_kind", this.readU1()); entry.set("ref_idx", this.readU2()); }
+                case 16: { entry.set("desc_idx", this.readU2()); }
+                case 17: { entry.set("bsm_attr_idx", this.readU2()); entry.set("nat_idx", this.readU2()); }
+                case 18: { entry.set("bsm_attr_idx", this.readU2()); entry.set("nat_idx", this.readU2()); }
+            }
+            if (tag != 5 and tag != 6) { this.cp.push(entry); i++; }
+        }
+    }
+
+    func readInterfaces() {
+        cnt = this.readU2(); ifaces = list();
+        for(i=0; i<cnt; i++) {
+            idx = this.readU2();
+            if (idx < len(this.cp) and this.cp[idx] != null) {
+                nameIdx = this.cp[idx]["name_idx"];
+                ifaces.push(this.getCPUtf8(nameIdx));
+            }
+        }
+        return ifaces;
+    }
+
+    func readFields() {
+        cnt = this.readU2(); fieldsList = list();
+        for(i=0; i<cnt; i++) {
+            accessF = this.readU2(); nameIdx = this.readU2(); descIdx = this.readU2();
+            fname = this.getCPUtf8(nameIdx); fdesc = this.getCPUtf8(descIdx);
+            attrCnt = this.readU2();
+            for(j=0; j<attrCnt; j++) { this.readU2(); len1 = this.readU4(); this.pos = this.pos + len1; }
+            fd = hashmap(); fd.set("name", fname); fd.set("desc", fdesc); fd.set("access", accessF);
+            fieldsList.push(fd);
+        }
+        return fieldsList;
+    }
+    
+    func readMethods() {
+        cnt = this.readU2(); methodsMap = hashmap();
+        for(i=0; i<cnt; i++) {
+            m = hashmap(); m.set("access", this.readU2());
+            nameIdx = this.readU2(); descIdx = this.readU2();
+            name = this.getCPUtf8(nameIdx); desc = this.getCPUtf8(descIdx);
+            m.set("name", name); m.set("desc", desc);
+            
+            attrCnt = this.readU2();
+            for(j=0; j<attrCnt; j++) {
+                attrNameIdx = this.readU2(); attrLen = this.readU4(); attrName = this.getCPUtf8(attrNameIdx);
+                if (attrName == "Code") {
+                    m.set("max_stack", this.readU2()); m.set("max_locals", this.readU2()); 
+                    codeLen = this.readU4();
+                    codeBytes = list(); for(k=0; k<codeLen; k++) { codeBytes.push(this.readU1()); }
+                    m.set("code", codeBytes);
+                    
+                    exceptLen = this.readU2(); excTable = list();
+                    for(e=0; e<exceptLen; e++) {
+                        exc = hashmap(); 
+                        exc.set("start_pc", this.readU2()); exc.set("end_pc", this.readU2());
+                        exc.set("handler_pc", this.readU2()); exc.set("catch_type", this.readU2()); 
+                        excTable.push(exc);
+                    }
+                    m.set("exceptions", excTable);
+                    
+                    subAttrCnt = this.readU2();
+                    for(x=0; x<subAttrCnt; x++) { this.readU2(); slen = this.readU4(); this.pos = this.pos + slen; }
+                } else { this.pos = this.pos + attrLen; }
+            }
+            methodsMap.set(name + ":" + desc, m);
+        }
+        return methodsMap;
+    }
+    
+    func getCPUtf8(idx) {
+        if (idx >= len(this.cp)) { return ""; }
+        entry = this.cp[idx]; if (entry == null) { return ""; }
+        return entry["val"];
+    }
+}

@@ -1,0 +1,273 @@
+// DJVM: Boxed number type natives: Integer, Long, Float, Double, Boolean, Character
+func registerNumberNatives(jvm) {
+        jvm.registerNative("java/lang/Integer", "valueOf", "(I)Ljava/lang/Integer;", func(args, thread, jvm) {
+            obj = newJavaObject(jvm.classMgr.loadClass("java/lang/Integer"));
+            fields = obj["__fields__"]; fields.set("value", int(args[0])); return obj;
+        });
+        jvm.registerNative("java/lang/Integer", "intValue", "()I", func(args, thread, jvm) {
+            return args[0]["__fields__"].get("value");
+        });
+        jvm.registerNative("java/lang/Integer", "parseInt", "(Ljava/lang/String;)I", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value"); return int(s);
+        });
+        jvm.registerNative("java/lang/Integer", "parseInt", "(I)I", func(args, thread, jvm) { return int(args[0]); });
+        jvm.registerNative("java/lang/Integer", "toString", "(I)Ljava/lang/String;", func(args, thread, jvm) {
+            return newJavaString(str(int(args[0])), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/Integer", "toString", "()Ljava/lang/String;", func(args, thread, jvm) {
+            return newJavaString(str(int(args[0]["__fields__"].get("value"))), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/Integer", "MAX_VALUE", "()I", func(args, thread, jvm) { return 2147483647; });
+        jvm.registerNative("java/lang/Integer", "MIN_VALUE", "()I", func(args, thread, jvm) { return -2147483648; });
+        jvm.registerNative("java/lang/Integer", "compareTo", "(Ljava/lang/Integer;)I", func(args, thread, jvm) {
+            a = args[0]["__fields__"].get("value"); b = args[1]["__fields__"].get("value");
+            return a < b ? -1 : (a > b ? 1 : 0);
+        });
+
+        jvm.registerNative("java/lang/Double", "valueOf", "(D)Ljava/lang/Double;", func(args, thread, jvm) {
+            obj = newJavaObject(jvm.classMgr.loadClass("java/lang/Double"));
+            fields = obj["__fields__"]; fields.set("value", args[0]); return obj;
+        });
+        jvm.registerNative("java/lang/Double", "doubleValue", "()D", func(args, thread, jvm) {
+            return args[0]["__fields__"].get("value");
+        });
+        jvm.registerNative("java/lang/Double", "parseDouble", "(Ljava/lang/String;)D", func(args, thread, jvm) {
+            return float(args[0]["__fields__"].get("value"));
+        });
+        jvm.registerNative("java/lang/Double", "toString", "(D)Ljava/lang/String;", func(args, thread, jvm) {
+            return newJavaString(str(args[0]), jvm.classMgr);
+        });
+
+        jvm.registerNative("java/lang/Integer", "longValue", "()J", func(args, thread, jvm) { return int(args[0]["__fields__"].get("value")); });
+        jvm.registerNative("java/lang/Integer", "floatValue", "()F", func(args, thread, jvm) { return float(args[0]["__fields__"].get("value")); });
+        jvm.registerNative("java/lang/Integer", "doubleValue", "()D", func(args, thread, jvm) { return float(args[0]["__fields__"].get("value")); });
+        jvm.registerNative("java/lang/Integer", "equals", "(Ljava/lang/Object;)Z", func(args, thread, jvm) {
+            if (args[1] == null) { return 0; }
+            return args[0]["__fields__"].get("value") == args[1]["__fields__"].get("value") ? 1 : 0;
+        });
+        jvm.registerNative("java/lang/Integer", "hashCode", "()I", func(args, thread, jvm) { return args[0]["__fields__"].get("value"); });
+        jvm.registerNative("java/lang/Integer", "toBinaryString", "(I)Ljava/lang/String;", func(args, thread, jvm) {
+            n = int(args[0]); if (n == 0) { return newJavaString("0", jvm.classMgr); }
+            s = ""; v = n < 0 ? n + 4294967296 : n;
+            while (v > 0) { s = str(v % 2) + s; v = int(v / 2); }
+            return newJavaString(s, jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/Integer", "toHexString", "(I)Ljava/lang/String;", func(args, thread, jvm) {
+            n = int(args[0]); if (n == 0) { return newJavaString("0", jvm.classMgr); }
+            hex = "0123456789abcdef"; s = ""; v = n < 0 ? n + 4294967296 : n;
+            while (v > 0) { s = hex[v % 16] + s; v = int(v / 16); }
+            return newJavaString(s, jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/Integer", "toOctalString", "(I)Ljava/lang/String;", func(args, thread, jvm) {
+            n = int(args[0]); if (n == 0) { return newJavaString("0", jvm.classMgr); }
+            s = ""; v = n < 0 ? n + 4294967296 : n;
+            while (v > 0) { s = str(v % 8) + s; v = int(v / 8); }
+            return newJavaString(s, jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/Integer", "compare", "(II)I", func(args, thread, jvm) {
+            return args[0] < args[1] ? -1 : (args[0] > args[1] ? 1 : 0);
+        });
+
+        jvm.registerNative("java/lang/Long", "valueOf", "(J)Ljava/lang/Long;", func(args, thread, jvm) {
+            obj = newJavaObject(jvm.classMgr.loadClass("java/lang/Long"));
+            obj["__fields__"].set("value", int(args[0])); return obj;
+        });
+        jvm.registerNative("java/lang/Long", "longValue", "()J", func(args, thread, jvm) { return int(args[0]["__fields__"].get("value")); });
+        jvm.registerNative("java/lang/Long", "intValue", "()I", func(args, thread, jvm) { return int(args[0]["__fields__"].get("value")); });
+        jvm.registerNative("java/lang/Long", "parseLong", "(Ljava/lang/String;)J", func(args, thread, jvm) { return int(args[0]["__fields__"].get("value")); });
+        jvm.registerNative("java/lang/Long", "toString", "()Ljava/lang/String;", func(args, thread, jvm) { return newJavaString(str(int(args[0]["__fields__"].get("value"))), jvm.classMgr); });
+        jvm.registerNative("java/lang/Long", "toString", "(J)Ljava/lang/String;", func(args, thread, jvm) { return newJavaString(str(int(args[0])), jvm.classMgr); });
+        jvm.registerNative("java/lang/Long", "equals", "(Ljava/lang/Object;)Z", func(args, thread, jvm) {
+            if (args[1] == null) { return 0; }
+            return args[0]["__fields__"].get("value") == args[1]["__fields__"].get("value") ? 1 : 0;
+        });
+        jvm.registerNative("java/lang/Long", "hashCode", "()I", func(args, thread, jvm) { return int(args[0]["__fields__"].get("value")); });
+        jvm.registerNative("java/lang/Long", "compare", "(JJ)I", func(args, thread, jvm) {
+            return args[0] < args[1] ? -1 : (args[0] > args[1] ? 1 : 0);
+        });
+
+        jvm.registerNative("java/lang/Float", "valueOf", "(F)Ljava/lang/Float;", func(args, thread, jvm) {
+            obj = newJavaObject(jvm.classMgr.loadClass("java/lang/Float"));
+            obj["__fields__"].set("value", args[0]); return obj;
+        });
+        jvm.registerNative("java/lang/Float", "floatValue", "()F", func(args, thread, jvm) { return args[0]["__fields__"].get("value"); });
+        jvm.registerNative("java/lang/Float", "doubleValue", "()D", func(args, thread, jvm) { return args[0]["__fields__"].get("value"); });
+        jvm.registerNative("java/lang/Float", "parseFloat", "(Ljava/lang/String;)F", func(args, thread, jvm) { return float(args[0]["__fields__"].get("value")); });
+        jvm.registerNative("java/lang/Float", "toString", "(F)Ljava/lang/String;", func(args, thread, jvm) { return newJavaString(str(args[0]), jvm.classMgr); });
+        jvm.registerNative("java/lang/Float", "isNaN", "(F)Z", func(args, thread, jvm) { return 0; });
+        jvm.registerNative("java/lang/Float", "isInfinite", "(F)Z", func(args, thread, jvm) { return 0; });
+
+        jvm.registerNative("java/lang/Boolean", "valueOf", "(Z)Ljava/lang/Boolean;", func(args, thread, jvm) {
+            obj = newJavaObject(jvm.classMgr.loadClass("java/lang/Boolean"));
+            obj["__fields__"].set("value", args[0] != 0 ? 1 : 0); return obj;
+        });
+        jvm.registerNative("java/lang/Boolean", "booleanValue", "()Z", func(args, thread, jvm) { return args[0]["__fields__"].get("value"); });
+        jvm.registerNative("java/lang/Boolean", "toString", "()Ljava/lang/String;", func(args, thread, jvm) {
+            return newJavaString(args[0]["__fields__"].get("value") != 0 ? "true" : "false", jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/Boolean", "parseBoolean", "(Ljava/lang/String;)Z", func(args, thread, jvm) {
+            s = args[0]["__fields__"].get("value").lower(); return s == "true" ? 1 : 0;
+        });
+        jvm.registerNative("java/lang/Boolean", "equals", "(Ljava/lang/Object;)Z", func(args, thread, jvm) {
+            if (args[1] == null) { return 0; }
+            return args[0]["__fields__"].get("value") == args[1]["__fields__"].get("value") ? 1 : 0;
+        });
+
+        jvm.registerNative("java/lang/Character", "valueOf", "(C)Ljava/lang/Character;", func(args, thread, jvm) {
+            obj = newJavaObject(jvm.classMgr.loadClass("java/lang/Character"));
+            obj["__fields__"].set("value", int(args[0])); return obj;
+        });
+        jvm.registerNative("java/lang/Character", "charValue", "()C", func(args, thread, jvm) { return args[0]["__fields__"].get("value"); });
+        jvm.registerNative("java/lang/Character", "isLetter", "(C)Z", func(args, thread, jvm) {
+            c = int(args[0]); return ((c >= 65 and c <= 90) or (c >= 97 and c <= 122)) ? 1 : 0;
+        });
+        jvm.registerNative("java/lang/Character", "isDigit", "(C)Z", func(args, thread, jvm) {
+            c = int(args[0]); return (c >= 48 and c <= 57) ? 1 : 0;
+        });
+        jvm.registerNative("java/lang/Character", "isWhitespace", "(C)Z", func(args, thread, jvm) {
+            c = int(args[0]); return (c == 32 or c == 9 or c == 10 or c == 13) ? 1 : 0;
+        });
+        jvm.registerNative("java/lang/Character", "isUpperCase", "(C)Z", func(args, thread, jvm) {
+            c = int(args[0]); return (c >= 65 and c <= 90) ? 1 : 0;
+        });
+        jvm.registerNative("java/lang/Character", "isLowerCase", "(C)Z", func(args, thread, jvm) {
+            c = int(args[0]); return (c >= 97 and c <= 122) ? 1 : 0;
+        });
+        jvm.registerNative("java/lang/Character", "toUpperCase", "(C)C", func(args, thread, jvm) {
+            c = int(args[0]); return (c >= 97 and c <= 122) ? c - 32 : c;
+        });
+        jvm.registerNative("java/lang/Character", "toLowerCase", "(C)C", func(args, thread, jvm) {
+            c = int(args[0]); return (c >= 65 and c <= 90) ? c + 32 : c;
+        });
+        jvm.registerNative("java/lang/Character", "toString", "(C)Ljava/lang/String;", func(args, thread, jvm) {
+            return newJavaString(chr(int(args[0])), jvm.classMgr);
+        });
+
+        jvm.registerNative("java/lang/Long", "valueOf", "(J)Ljava/lang/Long;", func(args, thread, jvm) {
+            obj = newJavaObject(jvm.classMgr.loadClass("java/lang/Long")); obj["__fields__"].set("value", args[0]); return obj;
+        });
+        jvm.registerNative("java/lang/Long", "longValue", "()J", func(args, thread, jvm) { return args[0]["__fields__"].get("value"); });
+        jvm.registerNative("java/lang/Long", "intValue", "()I", func(args, thread, jvm) { return int(args[0]["__fields__"].get("value")); });
+        jvm.registerNative("java/lang/Long", "parseLong", "(Ljava/lang/String;)J", func(args, thread, jvm) {
+            return int(args[0]["__fields__"].get("value"));
+        });
+        jvm.registerNative("java/lang/Long", "toString", "()Ljava/lang/String;", func(args, thread, jvm) {
+            return newJavaString(str(int(args[0]["__fields__"].get("value"))), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/Long", "toString", "(J)Ljava/lang/String;", func(args, thread, jvm) {
+            return newJavaString(str(int(args[0])), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/Long", "equals", "(Ljava/lang/Object;)Z", func(args, thread, jvm) {
+            if (args[1] == null) { return 0; }
+            return args[0]["__fields__"].get("value") == args[1]["__fields__"].get("value") ? 1 : 0;
+        });
+        jvm.registerNative("java/lang/Long", "compareTo", "(Ljava/lang/Long;)I", func(args, thread, jvm) {
+            a = args[0]["__fields__"].get("value"); b = args[1]["__fields__"].get("value");
+            return a > b ? 1 : (a < b ? -1 : 0);
+        });
+        jvm.registerNative("java/lang/Long", "hashCode", "()I", func(args, thread, jvm) { return int(args[0]["__fields__"].get("value")); });
+        jvm.registerNative("java/lang/Long", "MAX_VALUE", "()J", func(args, thread, jvm) { return 9223372036854775807; });
+        jvm.registerNative("java/lang/Long", "MIN_VALUE", "()J", func(args, thread, jvm) { return -9223372036854775808; });
+
+        jvm.registerNative("java/lang/Float", "valueOf", "(F)Ljava/lang/Float;", func(args, thread, jvm) {
+            obj = newJavaObject(jvm.classMgr.loadClass("java/lang/Float")); obj["__fields__"].set("value", args[0]); return obj;
+        });
+        jvm.registerNative("java/lang/Float", "floatValue", "()F", func(args, thread, jvm) { return args[0]["__fields__"].get("value"); });
+        jvm.registerNative("java/lang/Float", "doubleValue", "()D", func(args, thread, jvm) { return float(args[0]["__fields__"].get("value")); });
+        jvm.registerNative("java/lang/Float", "intValue", "()I", func(args, thread, jvm) { return int(args[0]["__fields__"].get("value")); });
+        jvm.registerNative("java/lang/Float", "parseFloat", "(Ljava/lang/String;)F", func(args, thread, jvm) {
+            return float(args[0]["__fields__"].get("value"));
+        });
+        jvm.registerNative("java/lang/Float", "toString", "()Ljava/lang/String;", func(args, thread, jvm) {
+            return newJavaString(str(args[0]["__fields__"].get("value")), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/Float", "equals", "(Ljava/lang/Object;)Z", func(args, thread, jvm) {
+            if (args[1] == null) { return 0; }
+            return args[0]["__fields__"].get("value") == args[1]["__fields__"].get("value") ? 1 : 0;
+        });
+        jvm.registerNative("java/lang/Float", "isNaN", "()Z", func(args, thread, jvm) { return 0; });
+        jvm.registerNative("java/lang/Float", "isInfinite", "()Z", func(args, thread, jvm) { return 0; });
+        jvm.registerNative("java/lang/Float", "compareTo", "(Ljava/lang/Float;)I", func(args, thread, jvm) {
+            a = args[0]["__fields__"].get("value"); b = args[1]["__fields__"].get("value");
+            return a > b ? 1 : (a < b ? -1 : 0);
+        });
+
+        jvm.registerNative("java/lang/Number", "intValue", "()I", func(args, thread, jvm) {
+            v = args[0]["__fields__"].get("value"); return v == null ? 0 : int(v);
+        });
+        jvm.registerNative("java/lang/Number", "doubleValue", "()D", func(args, thread, jvm) {
+            v = args[0]["__fields__"].get("value"); return v == null ? 0.0 : float(v);
+        });
+        jvm.registerNative("java/lang/Number", "longValue", "()J", func(args, thread, jvm) {
+            v = args[0]["__fields__"].get("value"); return v == null ? 0 : int(v);
+        });
+
+        jvm.registerNative("java/lang/Integer", "bitCount", "(I)I", func(args, thread, jvm) {
+            n = int(args[0]); if (n < 0) { n = n + 4294967296; } count = 0;
+            while (n > 0) { count = count + (n & 1); n = n >> 1; }
+            return count;
+        });
+        jvm.registerNative("java/lang/Integer", "highestOneBit", "(I)I", func(args, thread, jvm) {
+            n = int(args[0]); if (n < 0) { n = n + 4294967296; }
+            bit = 1; while (bit <= n) { bit = bit * 2; }
+            return int(bit / 2);
+        });
+        jvm.registerNative("java/lang/Integer", "numberOfLeadingZeros", "(I)I", func(args, thread, jvm) {
+            n = int(args[0]); if (n < 0) { n = n + 4294967296; } if (n == 0) { return 32; }
+            count = 0; while (n < 2147483648) { n = n * 2; count++; }
+            return count;
+        });
+        jvm.registerNative("java/lang/Integer", "numberOfTrailingZeros", "(I)I", func(args, thread, jvm) {
+            n = int(args[0]); if (n == 0) { return 32; } count = 0;
+            while ((n & 1) == 0) { n = n >> 1; count++; }
+            return count;
+        });
+        jvm.registerNative("java/lang/Integer", "reverse", "(I)I", func(args, thread, jvm) {
+            n = int(args[0]); if (n < 0) { n = n + 4294967296; } r = 0;
+            for (i=0; i<32; i++) { r = (r << 1) | (n & 1); n = n >> 1; }
+            if (r >= 2147483648) { r = r - 4294967296; } return r;
+        });
+        jvm.registerNative("java/lang/Integer", "signum", "(I)I", func(args, thread, jvm) {
+            n = int(args[0]); return n > 0 ? 1 : (n < 0 ? -1 : 0);
+        });
+        jvm.registerNative("java/lang/Integer", "sum", "(II)I", func(args, thread, jvm) {
+            return int(args[0]) + int(args[1]);
+        });
+        jvm.registerNative("java/lang/Integer", "max", "(II)I", func(args, thread, jvm) {
+            return args[0] > args[1] ? args[0] : args[1];
+        });
+        jvm.registerNative("java/lang/Integer", "min", "(II)I", func(args, thread, jvm) {
+            return args[0] < args[1] ? args[0] : args[1];
+        });
+        jvm.registerNative("java/lang/Integer", "compare", "(II)I", func(args, thread, jvm) {
+            return args[0] > args[1] ? 1 : (args[0] < args[1] ? -1 : 0);
+        });
+        jvm.registerNative("java/lang/Integer", "toOctalString", "(I)Ljava/lang/String;", func(args, thread, jvm) {
+            n = int(args[0]); if (n == 0) { return newJavaString("0", jvm.classMgr); }
+            v = n < 0 ? n + 4294967296 : n; s = "";
+            while (v > 0) { s = str(v % 8) + s; v = int(v / 8); }
+            return newJavaString(s, jvm.classMgr);
+        });
+
+        jvm.registerNative("java/lang/Double", "intValue", "()I", func(args, thread, jvm) { return int(args[0]["__fields__"].get("value")); });
+        jvm.registerNative("java/lang/Double", "longValue", "()J", func(args, thread, jvm) { return int(args[0]["__fields__"].get("value")); });
+        jvm.registerNative("java/lang/Double", "floatValue", "()F", func(args, thread, jvm) { return args[0]["__fields__"].get("value"); });
+        jvm.registerNative("java/lang/Double", "compareTo", "(Ljava/lang/Double;)I", func(args, thread, jvm) {
+            a = args[0]["__fields__"].get("value"); b = args[1]["__fields__"].get("value");
+            return a > b ? 1 : (a < b ? -1 : 0);
+        });
+        jvm.registerNative("java/lang/Double", "equals", "(Ljava/lang/Object;)Z", func(args, thread, jvm) {
+            if (args[1] == null) { return 0; }
+            return args[0]["__fields__"].get("value") == args[1]["__fields__"].get("value") ? 1 : 0;
+        });
+        jvm.registerNative("java/lang/Double", "hashCode", "()I", func(args, thread, jvm) { return int(args[0]["__fields__"].get("value")); });
+        jvm.registerNative("java/lang/Double", "isNaN", "()Z", func(args, thread, jvm) { return 0; });
+        jvm.registerNative("java/lang/Double", "isInfinite", "()Z", func(args, thread, jvm) { return 0; });
+        jvm.registerNative("java/lang/Double", "compare", "(DD)I", func(args, thread, jvm) {
+            return args[0] > args[1] ? 1 : (args[0] < args[1] ? -1 : 0);
+        });
+        jvm.registerNative("java/lang/Double", "max", "(DD)D", func(args, thread, jvm) { return args[0] > args[1] ? args[0] : args[1]; });
+        jvm.registerNative("java/lang/Double", "min", "(DD)D", func(args, thread, jvm) { return args[0] < args[1] ? args[0] : args[1]; });
+        jvm.registerNative("java/lang/Double", "sum", "(DD)D", func(args, thread, jvm) { return args[0] + args[1]; });
+
+}

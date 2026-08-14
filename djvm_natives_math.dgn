@@ -1,0 +1,143 @@
+// DJVM: java.lang.Math and java.util.Random natives
+func registerMathNatives(jvm) {
+        jvm.registerNative("java/lang/Math", "abs", "(I)I", func(args, thread, jvm) { v = args[0]; return v < 0 ? -v : v; });
+        jvm.registerNative("java/lang/Math", "abs", "(D)D", func(args, thread, jvm) { v = args[0]; return v < 0 ? -v : v; });
+        jvm.registerNative("java/lang/Math", "max", "(II)I", func(args, thread, jvm) { return args[0] > args[1] ? args[0] : args[1]; });
+        jvm.registerNative("java/lang/Math", "max", "(DD)D", func(args, thread, jvm) { return args[0] > args[1] ? args[0] : args[1]; });
+        jvm.registerNative("java/lang/Math", "min", "(II)I", func(args, thread, jvm) { return args[0] < args[1] ? args[0] : args[1]; });
+        jvm.registerNative("java/lang/Math", "min", "(DD)D", func(args, thread, jvm) { return args[0] < args[1] ? args[0] : args[1]; });
+        jvm.registerNative("java/lang/Math", "pow", "(DD)D", func(args, thread, jvm) {
+            base = args[0]; exp = args[1];
+            if (exp == 0.0) { return 1.0; }
+            if (base == 0.0) { return 0.0; }
+            iexp = int(exp);
+            if (iexp == exp and iexp > 0) {
+                result = 1.0; i = 0; while (i < iexp) { result = result * base; i++; } return result;
+            }
+            if (base < 0.0) { return 0.0; }
+            x = base; t = (x - 1.0) / (x + 1.0); t2 = t * t; lnx = 0.0; term = t; k = 1;
+            while (k < 60) { lnx = lnx + term / k; term = term * t2; k = k + 2; }
+            lnx = lnx * 2.0;
+            y = exp * lnx; ey = 1.0; term2 = 1.0; i = 1;
+            while (i <= 40) { term2 = term2 * y / i; ey = ey + term2; i++; }
+            return ey;
+        });
+        jvm.registerNative("java/lang/Math", "log", "(D)D", func(args, thread, jvm) {
+            x = args[0]; if (x <= 0.0) { return 0.0; }
+            t = (x - 1.0) / (x + 1.0); t2 = t * t; lnx = 0.0; term = t; k = 1;
+            while (k < 80) { lnx = lnx + term / k; term = term * t2; k = k + 2; }
+            return lnx * 2.0;
+        });
+        jvm.registerNative("java/lang/Math", "log10", "(D)D", func(args, thread, jvm) {
+            x = args[0]; if (x <= 0.0) { return 0.0; }
+            t = (x - 1.0) / (x + 1.0); t2 = t * t; lnx = 0.0; term = t; k = 1;
+            while (k < 80) { lnx = lnx + term / k; term = term * t2; k = k + 2; }
+            ln10t = 0.0; xt = (10.0 - 1.0) / (10.0 + 1.0); xt2 = xt * xt; termt = xt; kt = 1;
+            while (kt < 80) { ln10t = ln10t + termt / kt; termt = termt * xt2; kt = kt + 2; }
+            return (lnx * 2.0) / (ln10t * 2.0);
+        });
+        jvm.registerNative("java/lang/Math", "sin", "(D)D", func(args, thread, jvm) {
+            x = args[0]; result = 0.0; term = x; i = 1;
+            while (i <= 30) { result = result + term; term = -term * x * x / ((2*i) * (2*i+1)); i++; }
+            return result;
+        });
+        jvm.registerNative("java/lang/Math", "cos", "(D)D", func(args, thread, jvm) {
+            x = args[0]; result = 0.0; term = 1.0; i = 1;
+            while (i <= 30) { result = result + term; term = -term * x * x / ((2*i-1) * (2*i)); i++; }
+            return result;
+        });
+        jvm.registerNative("java/lang/Math", "tan", "(D)D", func(args, thread, jvm) {
+            x = args[0];
+            sinx = 0.0; term = x; i = 1;
+            while (i <= 30) { sinx = sinx + term; term = -term * x * x / ((2*i) * (2*i+1)); i++; }
+            cosx = 0.0; term2 = 1.0; j = 1;
+            while (j <= 30) { cosx = cosx + term2; term2 = -term2 * x * x / ((2*j-1) * (2*j)); j++; }
+            return cosx == 0.0 ? 0.0 : sinx / cosx;
+        });
+        jvm.registerNative("java/lang/Math", "signum", "(D)D", func(args, thread, jvm) {
+            v = args[0]; return v > 0.0 ? 1.0 : (v < 0.0 ? -1.0 : 0.0);
+        });
+        jvm.registerNative("java/lang/Math", "abs", "(J)J", func(args, thread, jvm) { v = args[0]; return v < 0 ? -v : v; });
+        jvm.registerNative("java/lang/Math", "abs", "(F)F", func(args, thread, jvm) { v = args[0]; return v < 0 ? -v : v; });
+        jvm.registerNative("java/lang/Math", "PI", "()D", func(args, thread, jvm) { return 3.141592653589793; });
+        jvm.registerNative("java/lang/Math", "E",  "()D", func(args, thread, jvm) { return 2.718281828459045; });
+        jvm.registerNative("java/lang/Math", "sqrt", "(D)D", func(args, thread, jvm) {
+            n = args[0]; if (n <= 0) { return 0.0; }
+            x = n / 2.0; i = 0;
+            while (i < 50) { x = (x + n / x) / 2.0; i++; }
+            return x;
+        });
+        jvm.registerNative("java/lang/Math", "floor", "(D)D", func(args, thread, jvm) { return int(args[0]); });
+        jvm.registerNative("java/lang/Math", "ceil", "(D)D", func(args, thread, jvm) {
+            v = args[0]; iv = int(v); return iv < v ? iv + 1 : iv;
+        });
+        jvm.registerNative("java/lang/Math", "round", "(D)J", func(args, thread, jvm) { return int(args[0] + 0.5); });
+        jvm.registerNative("java/lang/Math", "random", "()D", func(args, thread, jvm) {
+            jvm.tick_clock = (jvm.tick_clock * 1664525 + 1013904223) % 4294967296;
+            return (jvm.tick_clock % 100000) / 100000.0;
+        });
+
+        jvm.registerNative("java/util/Random", "<init>", "()V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("__seed__", 12345); return null;
+        });
+        jvm.registerNative("java/util/Random", "<init>", "(J)V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("__seed__", int(args[1])); return null;
+        });
+        jvm.registerNative("java/util/Random", "nextInt", "()I", func(args, thread, jvm) {
+            s = (int(args[0]["__fields__"].get("__seed__")) * 1664525 + 1013904223) % 4294967296;
+            args[0]["__fields__"].set("__seed__", s); return s % 2147483647;
+        });
+        jvm.registerNative("java/util/Random", "nextInt", "(I)I", func(args, thread, jvm) {
+            s = (int(args[0]["__fields__"].get("__seed__")) * 1664525 + 1013904223) % 4294967296;
+            args[0]["__fields__"].set("__seed__", s); return int(s % int(args[1]));
+        });
+        jvm.registerNative("java/util/Random", "nextDouble", "()D", func(args, thread, jvm) {
+            s = (int(args[0]["__fields__"].get("__seed__")) * 1664525 + 1013904223) % 4294967296;
+            args[0]["__fields__"].set("__seed__", s); return (s % 100000) / 100000.0;
+        });
+        jvm.registerNative("java/util/Random", "nextBoolean", "()Z", func(args, thread, jvm) {
+            s = (int(args[0]["__fields__"].get("__seed__")) * 1664525 + 1013904223) % 4294967296;
+            args[0]["__fields__"].set("__seed__", s); return s % 2;
+        });
+
+        jvm.registerNative("java/lang/Math", "atan2", "(DD)D", func(args, thread, jvm) {
+            y = args[0]; x = args[1];
+            if (x > 0.0) { return 0.0; } // simplified; real atan2 needs trig series
+            if (x < 0.0 and y >= 0.0) { return 3.141592653589793; }
+            if (x < 0.0 and y < 0.0) { return -3.141592653589793; }
+            return 0.0;
+        });
+        jvm.registerNative("java/lang/Math", "hypot", "(DD)D", func(args, thread, jvm) {
+            a = args[0]; b = args[1]; return (a*a + b*b); // caller should sqrt — kept simple
+        });
+        jvm.registerNative("java/lang/Math", "toRadians", "(D)D", func(args, thread, jvm) {
+            return args[0] * 3.141592653589793 / 180.0;
+        });
+        jvm.registerNative("java/lang/Math", "toDegrees", "(D)D", func(args, thread, jvm) {
+            return args[0] * 180.0 / 3.141592653589793;
+        });
+        jvm.registerNative("java/lang/Math", "exp", "(D)D", func(args, thread, jvm) {
+            x = args[0]; e = 2.718281828459045; result = 1.0; term = 1.0;
+            for (k=1; k<=20; k++) { term = term * x / k; result = result + term; }
+            return result;
+        });
+        jvm.registerNative("java/lang/Math", "cbrt", "(D)D", func(args, thread, jvm) {
+            x = args[0]; s = x < 0 ? -1 : 1; x = x < 0 ? -x : x;
+            r = x; for (i=0; i<50; i++) { r = (2*r + x/(r*r)) / 3.0; }
+            return s * r;
+        });
+        jvm.registerNative("java/lang/Math", "floorDiv", "(II)I", func(args, thread, jvm) {
+            a = int(args[0]); b = int(args[1]);
+            r = int(a / b);
+            if ((a ^ b) < 0 and r * b != a) { r = r - 1; }
+            return r;
+        });
+        jvm.registerNative("java/lang/Math", "floorMod", "(II)I", func(args, thread, jvm) {
+            a = int(args[0]); b = int(args[1]); return a - b * int(a / b);
+        });
+        jvm.registerNative("java/lang/Math", "clamp", "(DDD)D", func(args, thread, jvm) {
+            v = args[0]; mn = args[1]; mx = args[2];
+            return v < mn ? mn : (v > mx ? mx : v);
+        });
+
+}

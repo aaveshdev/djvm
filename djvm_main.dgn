@@ -1,0 +1,56 @@
+func main(args) {
+    if (len(args) < 1) {
+        showln(" _____       ___      ____  __ ");
+        showln("|  __ \\     | \\ \\    / /  \\/  |");
+        showln("| |  | |    | |\\ \\  / /| \\  / |");
+        showln("| |  | |_   | | \\ \\/ / | |\\/| |");
+        showln("| |__| | |__| |  \\  /  | |  | |");
+        showln("|_____/ \\____/    \\/   |_|  |_|");
+        showln("");
+        showln("DJVM - a JVM built with Dragon");
+        showln("");
+        showln("Usage:");
+        showln("  dragon djvm.dgn [ -cp path ] class [args...]      (interpreted)");
+        showln("  djvm [ -cp path ] class [args...]                 (compiled --native binary)");
+        return;
+    }
+
+    var classPath = "."; 
+    var mainClass = null; 
+    var appArgs = list();
+    var isJar = False;
+    var jarFile = null;
+
+    var i = 0;
+    while (i < len(args)) {
+
+        var arg = args[i];
+
+        if (arg == "-cp" or arg == "-classpath") { 
+            i++; 
+            if (i < len(args)) { classPath = args[i]; } 
+        } 
+
+        else if (arg.starts_with("-X")) { 
+        } 
+        else if (mainClass == null) { 
+            mainClass = arg; 
+        } 
+        else { 
+            appArgs.push(arg); 
+        }
+        i++;
+    }
+
+  
+        if (mainClass == null) { showln("Error: Main class not specified."); return; }
+        if (mainClass.ends_with(".class")) { mainClass = mainClass.substring(0, len(mainClass) - 6); }
+    
+
+    var mgr = new ClassManager(classPath); 
+    var jvm = new DragonJVM(mgr);
+    jvm.run(mainClass, appArgs); 
+}
+
+
+main(argv);

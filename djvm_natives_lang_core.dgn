@@ -1,0 +1,283 @@
+// DJVM: Core java.lang natives: Object, Class, System, Thread, Enum, reflection
+func registerLangCoreNatives(jvm) {
+        jvm.registerNative("java/lang/Class", "forName", "(Ljava/lang/String;)Ljava/lang/Class;", func(args, thread, jvm) {
+            if (args[0] == null) { jvm.handleException(newJavaObject(jvm.classMgr.loadClass("java/lang/NullPointerException")), thread); return null; }
+            rawName = args[0]["__fields__"].get("value");
+            safeName = str_replace_char(rawName, ".", "/");
+            
+            cls = jvm.classMgr.loadClass(safeName);
+            if (cls == null) { jvm.handleException(newJavaObject(jvm.classMgr.loadClass("java/lang/ClassNotFoundException")), thread); return null; }
+            jvm.initClassIfNeeded(cls, thread);
+            return newJavaClassObj(safeName, jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/Class", "getName", "()Ljava/lang/String;", func(args, thread, jvm) {
+            clsObj = args[0]; name = clsObj["__fields__"].get("name");
+            return newJavaString(str_replace_char(name, "/", "."), jvm.classMgr);
+        });
+
+        jvm.registerNative("java/lang/System", "arraycopy", "(Ljava/lang/Object;ILjava/lang/Object;II)V", func(args, thread, jvm) {
+            src = args[0]; srcPos = args[1]; dest = args[2]; destPos = args[3]; length = args[4];
+            if (src == null or dest == null) { jvm.handleException(newJavaObject(jvm.classMgr.loadClass("java/lang/NullPointerException")), thread); return null; }
+            srcArr = src["__array__"]; destArr = dest["__array__"];
+            for(i=0; i<length; i++) { destArr[destPos + i] = srcArr[srcPos + i]; }
+            return null;
+        });
+        jvm.registerNative("java/lang/System", "currentTimeMillis", "()J", func(args, thread, jvm) {
+            jvm.tick_clock = jvm.tick_clock + 15; return jvm.tick_clock;
+        });
+        jvm.registerNative("java/lang/System", "gc", "()V", func(args, thread, jvm) { system_gc(jvm); return null; });
+
+        jvm.registerNative("java/lang/Object", "wait", "()V", func(args, thread, jvm) {
+            obj = args[0];
+            if (obj["__monitor_owner__"] != thread.tid) { jvm.handleException(newJavaObject(jvm.classMgr.loadClass("java/lang/IllegalMonitorStateException")), thread); return null; }
+            thread.state = "WAITING"; obj["__wait_set__"].push(thread.tid);
+            obj["__monitor_owner__"] = -1; obj["__monitor_count__"] = 0;
+            return null;
+        });
+        jvm.registerNative("java/lang/Object", "notify", "()V", func(args, thread, jvm) {
+            obj = args[0];
+            if (obj["__monitor_owner__"] != thread.tid) { jvm.handleException(newJavaObject(jvm.classMgr.loadClass("java/lang/IllegalMonitorStateException")), thread); return null; }
+            wait_set = obj["__wait_set__"];
+            if (len(wait_set) > 0) {
+                wakeup_tid = wait_set[0]; wait_set.remove_at(0); 
+                for (t=0; t<len(jvm.threads); t++) {
+                    if (jvm.threads[t].tid == wakeup_tid) { jvm.threads[t].state = "BLOCKED"; break; }
+                }
+            }
+            return null;
+        });
+        jvm.registerNative("java/lang/Object", "notifyAll", "()V", func(args, thread, jvm) {
+            obj = args[0];
+            if (obj["__monitor_owner__"] != thread.tid) { jvm.handleException(newJavaObject(jvm.classMgr.loadClass("java/lang/IllegalMonitorStateException")), thread); return null; }
+            wait_set = obj["__wait_set__"];
+            i = 0; while (i < len(wait_set)) {
+                wakeup_tid = wait_set[i];
+                for (t=0; t<len(jvm.threads); t++) {
+                    if (jvm.threads[t].tid == wakeup_tid) { jvm.threads[t].state = "BLOCKED"; break; }
+                }
+                i++;
+            }
+            obj["__wait_set__"] = list();
+            return null;
+        });
+        jvm.registerNative("java/lang/Object", "wait", "(J)V", func(args, thread, jvm) {
+            obj = args[0];
+            if (obj["__monitor_owner__"] != thread.tid) { jvm.handleException(newJavaObject(jvm.classMgr.loadClass("java/lang/IllegalMonitorStateException")), thread); return null; }
+            thread.state = "WAITING"; obj["__wait_set__"].push(thread.tid);
+            obj["__monitor_owner__"] = -1; obj["__monitor_count__"] = 0;
+            return null;
+        });
+        jvm.registerNative("java/lang/System", "exit", "(I)V", func(args, thread, jvm) {
+            showln("[JVM] System.exit(" + str(args[0]) + ") called.");
+            i = 0; while (i < len(jvm.threads)) { jvm.threads[i].state = "DEAD"; i++; }
+            return null;
+        });
+        jvm.registerNative("java/lang/System", "lineSeparator", "()Ljava/lang/String;", func(args, thread, jvm) {
+            return newJavaString("\n", jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/System", "identityHashCode", "(Ljava/lang/Object;)I", func(args, thread, jvm) {
+            obj = args[0]; return obj == null ? 0 : obj["__id__"];
+        });
+        jvm.registerNative("java/lang/System", "nanoTime", "()J", func(args, thread, jvm) {
+            jvm.tick_clock = jvm.tick_clock + 1; return jvm.tick_clock * 1000000;
+        });
+
+        jvm.registerNative("java/lang/Object", "toString", "()Ljava/lang/String;", func(args, thread, jvm) {
+            obj = args[0]; cls = obj.contains("__class__") ? obj["__class__"] : "Object";
+            return newJavaString(cls + "@" + str(obj["__id__"]), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/Object", "equals", "(Ljava/lang/Object;)Z", func(args, thread, jvm) {
+            return (args[0] == args[1] or (args[0] != null and args[1] != null and args[0]["__id__"] == args[1]["__id__"])) ? 1 : 0;
+        });
+        jvm.registerNative("java/lang/Object", "getClass", "()Ljava/lang/Class;", func(args, thread, jvm) {
+            cls = args[0].contains("__class__") ? args[0]["__class__"] : "java/lang/Object";
+            return newJavaClassObj(cls, jvm.classMgr);
+        });
+
+        jvm.registerNative("java/lang/Thread", "start0", "()V", func(args, thread, jvm) {
+            threadObj = args[0]; newThread = new JavaThread(jvm.thread_counter++);
+            cls = jvm.classMgr.loadClass(threadObj["__class__"]);
+            runMethod = cls["methods"].get("run:()V");
+            if (runMethod != null) {
+                frame = new Frame(runMethod, cls); frame.locals[0] = threadObj;
+                newThread.callStack.push(frame); jvm.threads.push(newThread);
+            }
+            return null;
+        });
+
+        jvm.registerNative("java/lang/Thread", "<init>", "()V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("name", "Thread-" + str(jvm.thread_counter)); return null;
+        });
+        jvm.registerNative("java/lang/Thread", "<init>", "(Ljava/lang/Runnable;)V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("__target__", args[1]);
+            args[0]["__fields__"].set("name", "Thread-" + str(jvm.thread_counter)); return null;
+        });
+        jvm.registerNative("java/lang/Thread", "start", "()V", func(args, thread, jvm) {
+            threadObj = args[0]; newT = new JavaThread(jvm.thread_counter++);
+            target = threadObj["__fields__"].get("__target__");
+            if (target != null) {
+                cls = jvm.classMgr.loadClass(target["__class__"]);
+                runMethod = null; curr = cls;
+                while (curr != null) {
+                    runMethod = curr["methods"].get("run:()V");
+                    if (runMethod != null) { break; }
+                    curr = curr["super_class"] != null ? jvm.classMgr.loadClass(curr["super_class"]) : null;
+                }
+                if (runMethod != null) { fr = new Frame(runMethod, cls); fr.locals[0] = target; newT.callStack.push(fr); }
+            } else {
+                cls = jvm.classMgr.loadClass(threadObj["__class__"]);
+                runMethod = cls != null ? cls["methods"].get("run:()V") : null;
+                if (runMethod != null) { fr = new Frame(runMethod, cls); fr.locals[0] = threadObj; newT.callStack.push(fr); }
+            }
+            jvm.threads.push(newT); return null;
+        });
+        jvm.registerNative("java/lang/Thread", "sleep", "(J)V", func(args, thread, jvm) { return null; });
+        jvm.registerNative("java/lang/Thread", "getName", "()Ljava/lang/String;", func(args, thread, jvm) {
+            n = args[0]["__fields__"].get("name"); return newJavaString(n == null ? "Thread" : n, jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/Thread", "setName", "(Ljava/lang/String;)V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("name", args[1]["__fields__"].get("value")); return null;
+        });
+        jvm.registerNative("java/lang/Thread", "currentThread", "()Ljava/lang/Thread;", func(args, thread, jvm) {
+            obj = newJavaObject(jvm.classMgr.loadClass("java/lang/Thread"));
+            obj["__fields__"].set("name", "main"); return obj;
+        });
+        jvm.registerNative("java/lang/Thread", "isAlive", "()Z", func(args, thread, jvm) { return 0; });
+        jvm.registerNative("java/lang/Thread", "join", "()V", func(args, thread, jvm) { return null; });
+        jvm.registerNative("java/lang/Thread", "interrupt", "()V", func(args, thread, jvm) { return null; });
+        jvm.registerNative("java/lang/Thread", "isInterrupted", "()Z", func(args, thread, jvm) { return 0; });
+        jvm.registerNative("java/lang/Thread", "setPriority", "(I)V", func(args, thread, jvm) { return null; });
+        jvm.registerNative("java/lang/Thread", "getPriority", "()I", func(args, thread, jvm) { return 5; });
+        jvm.registerNative("java/lang/Thread", "setDaemon", "(Z)V", func(args, thread, jvm) { return null; });
+        jvm.registerNative("java/lang/Thread", "isDaemon", "()Z", func(args, thread, jvm) { return 0; });
+
+        jvm.registerNative("java/lang/Runnable", "run", "()V", func(args, thread, jvm) { return null; });
+
+        jvm.registerNative("java/lang/Enum", "<init>", "(Ljava/lang/String;I)V", func(args, thread, jvm) {
+            args[0]["__fields__"].set("__name__", args[1] == null ? "" : args[1]["__fields__"].get("value"));
+            args[0]["__fields__"].set("__ordinal__", args[2]); return null;
+        });
+        jvm.registerNative("java/lang/Enum", "name", "()Ljava/lang/String;", func(args, thread, jvm) {
+            n = args[0]["__fields__"].get("__name__"); return newJavaString(n == null ? "" : n, jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/Enum", "ordinal", "()I", func(args, thread, jvm) {
+            return args[0]["__fields__"].get("__ordinal__");
+        });
+        jvm.registerNative("java/lang/Enum", "toString", "()Ljava/lang/String;", func(args, thread, jvm) {
+            n = args[0]["__fields__"].get("__name__"); return newJavaString(n == null ? "" : n, jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/Enum", "equals", "(Ljava/lang/Object;)Z", func(args, thread, jvm) {
+            if (args[1] == null) { return 0; }
+            return args[0]["__id__"] == args[1]["__id__"] ? 1 : 0;
+        });
+        jvm.registerNative("java/lang/Enum", "compareTo", "(Ljava/lang/Enum;)I", func(args, thread, jvm) {
+            return args[0]["__fields__"].get("__ordinal__") - args[1]["__fields__"].get("__ordinal__");
+        });
+        jvm.registerNative("java/lang/Enum", "hashCode", "()I", func(args, thread, jvm) {
+            return args[0]["__fields__"].get("__ordinal__");
+        });
+        jvm.registerNative("java/lang/Enum", "values", "()[Ljava/lang/Enum;", func(args, thread, jvm) {
+            arrObj = hashmap(); arrObj.set("__type__", "array"); arrObj.set("__class__", "[Ljava/lang/Enum;");
+            arrObj.set("__array__", list()); arrObj.set("__id__", allocateHeap(arrObj)); return arrObj;
+        });
+
+        jvm.registerNative("java/lang/reflect/Method", "invoke", "(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", func(args, thread, jvm) {
+            methObj = args[0]; target = args[1]; invokeArgs = args[2];
+            className = methObj["__fields__"].get("__class__");
+            methodName = methObj["__fields__"].get("__name__");
+            methodDesc = methObj["__fields__"].get("__desc__");
+            cls = jvm.classMgr.loadClass(className);
+            if (cls == null) { return null; }
+            m = cls["methods"].get(methodName + ":" + methodDesc);
+            if (m == null) { return null; }
+            newF = new Frame(m, cls); newF.locals[0] = target;
+            if (invokeArgs != null) {
+                arr = invokeArgs["__array__"];
+                for (ai=0; ai<len(arr); ai++) { newF.locals[ai+1] = arr[ai]; }
+            }
+            thread.callStack.push(newF); return null;
+        });
+        jvm.registerNative("java/lang/Class", "getMethod", "(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;", func(args, thread, jvm) {
+            clsObj = args[0]; mname = args[1]["__fields__"].get("value");
+            clsName = clsObj["__fields__"].get("name");
+            methObj = newJavaObject(jvm.classMgr.loadClass("java/lang/Object"));
+            methObj["__class__"] = "java/lang/reflect/Method";
+            methObj["__fields__"].set("__class__", clsName);
+            methObj["__fields__"].set("__name__", mname);
+            methObj["__fields__"].set("__desc__", "()Ljava/lang/Object;");
+            return methObj;
+        });
+        jvm.registerNative("java/lang/Class", "getDeclaredMethod", "(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;", func(args, thread, jvm) {
+            clsObj = args[0]; mname = args[1]["__fields__"].get("value");
+            clsName = clsObj["__fields__"].get("name");
+            methObj = newJavaObject(jvm.classMgr.loadClass("java/lang/Object"));
+            methObj["__class__"] = "java/lang/reflect/Method";
+            methObj["__fields__"].set("__class__", clsName);
+            methObj["__fields__"].set("__name__", mname);
+            methObj["__fields__"].set("__desc__", "()Ljava/lang/Object;");
+            return methObj;
+        });
+        jvm.registerNative("java/lang/Class", "getDeclaredMethods", "()[Ljava/lang/reflect/Method;", func(args, thread, jvm) {
+            arrObj = hashmap(); arrObj.set("__type__", "array"); arrObj.set("__class__", "[Ljava/lang/reflect/Method;");
+            arrObj.set("__array__", list()); arrObj.set("__id__", allocateHeap(arrObj)); return arrObj;
+        });
+        jvm.registerNative("java/lang/Class", "getMethods", "()[Ljava/lang/reflect/Method;", func(args, thread, jvm) {
+            arrObj = hashmap(); arrObj.set("__type__", "array"); arrObj.set("__class__", "[Ljava/lang/reflect/Method;");
+            arrObj.set("__array__", list()); arrObj.set("__id__", allocateHeap(arrObj)); return arrObj;
+        });
+        jvm.registerNative("java/lang/Class", "newInstance", "()Ljava/lang/Object;", func(args, thread, jvm) {
+            clsObj = args[0]; clsName = clsObj["__fields__"].get("name");
+            cls = jvm.classMgr.loadClass(clsName);
+            if (cls == null) { return null; }
+            return newJavaObject(cls);
+        });
+        jvm.registerNative("java/lang/Class", "isInstance", "(Ljava/lang/Object;)Z", func(args, thread, jvm) {
+            clsObj = args[0]; obj = args[1];
+            if (obj == null) { return 0; }
+            return jvm.classMgr.isSubclass(obj["__class__"], clsObj["__fields__"].get("name")) ? 1 : 0;
+        });
+        jvm.registerNative("java/lang/Class", "isAssignableFrom", "(Ljava/lang/Class;)Z", func(args, thread, jvm) {
+            return jvm.classMgr.isSubclass(args[1]["__fields__"].get("name"), args[0]["__fields__"].get("name")) ? 1 : 0;
+        });
+        jvm.registerNative("java/lang/Class", "getSuperclass", "()Ljava/lang/Class;", func(args, thread, jvm) {
+            clsName = args[0]["__fields__"].get("name");
+            cls = jvm.classMgr.loadClass(clsName);
+            if (cls == null or cls["super_class"] == null) { return null; }
+            return newJavaClassObj(cls["super_class"], jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/Class", "getSimpleName", "()Ljava/lang/String;", func(args, thread, jvm) {
+            n = args[0]["__fields__"].get("name");
+            idx = 0; i = 0;
+            while (i < len(n)) { if (n[i] == "/") { idx = i + 1; } i++; }
+            return newJavaString(n.substring(idx, len(n)), jvm.classMgr);
+        });
+
+        jvm.registerNative("java/lang/Object", "toString", "()Ljava/lang/String;", func(args, thread, jvm) {
+            obj = args[0]; cls = obj.contains("__class__") ? obj["__class__"] : "Object";
+            return newJavaString(cls + "@" + str(obj["__id__"]), jvm.classMgr);
+        });
+        jvm.registerNative("java/lang/Object", "clone", "()Ljava/lang/Object;", func(args, thread, jvm) {
+            src = args[0]; clone = hashmap();
+            srcKeys = src.keys();
+            for (i=0; i<len(srcKeys); i++) { clone.set(srcKeys[i], src.get(srcKeys[i])); }
+            clone.set("__id__", allocateHeap(clone));
+            if (clone.contains("__fields__")) {
+                oldF = clone["__fields__"]; newF = hashmap();
+                fkeys = oldF.keys(); for (i=0; i<len(fkeys); i++) { newF.set(fkeys[i], oldF.get(fkeys[i])); }
+                clone.set("__fields__", newF);
+            }
+            return clone;
+        });
+
+        jvm.registerNative("java/lang/Comparable", "compareTo", "(Ljava/lang/Object;)I", func(args, thread, jvm) {
+            a = jvmKeyStr(args[0]); b = jvmKeyStr(args[1]);
+            return a > b ? 1 : (a < b ? -1 : 0);
+        });
+        jvm.registerNative("java/lang/Iterable", "iterator", "()Ljava/util/Iterator;", func(args, thread, jvm) {
+            d = args[0]["__fields__"].get("__data__");
+            itObj = newJavaObject(jvm.classMgr.loadClass("java/util/Iterator"));
+            itObj["__fields__"].set("__items__", d == null ? list() : d);
+            itObj["__fields__"].set("__idx__", 0); return itObj;
+        });
+
+}
